@@ -79,7 +79,7 @@ fi
 echo "## Configuring Let's Encrypt for $DOMAIN..."
 
 # Use Certbot with the Nginx plugin to obtain and install a certificate
-certbot --nginx -d $DOMAIN --non-interactive --agree-tos -m {{EMAIL_ADDRESS}}
+certbot --nginx -d $DOMAIN -d m.$DOMAIN --non-interactive --agree-tos -m {{EMAIL_ADDRESS}}
 
 # Nginx will be reloaded automatically by Certbot after obtaining the certificate
 echo "## Let's Encrypt configured for $DOMAIN"
@@ -98,7 +98,7 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
     
     # Replace the site_url value with the domain
     echo "## Updating site_url in Mautic configuration..."
-    docker compose exec -T mautic_web sed -i "s|'site_url' => '.*',|'site_url' => 'https://$DOMAIN',|g" /var/www/html/config/local.php
+    docker compose exec -T mautic_web sed -i "s|'site_url' => '.*',|'site_url' => 'https://m.$DOMAIN',|g" /var/www/html/config/local.php
 fi
 
 echo "## Script execution completed"
