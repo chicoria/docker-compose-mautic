@@ -1,10 +1,9 @@
-x-mautic-volumes:
-  &mautic-volumes
-  - ./mautic/config:/var/www/html/config:z
-  - ./mautic/logs:/var/www/html/var/logs:z
-  - ./mautic/media/files:/var/www/html/docroot/media/files:z
-  - ./mautic/media/images:/var/www/html/docroot/media/images:z
-  - ./cron:/opt/mautic/cron:z
+x-mautic-volumes: &mautic-volumes
+  - /mnt/do-volume/mautic/config:/var/www/html/config:z
+  - /mnt/do-volume/mautic/logs:/var/www/html/var/logs:z
+  - /mnt/do-volume/mautic/media/files:/var/www/html/docroot/media/files:z
+  - /mnt/do-volume/mautic/media/images:/var/www/html/docroot/media/images:z
+  - /mnt/do-volume/cron:/opt/mautic/cron:z
 
 services:
   db:
@@ -14,8 +13,8 @@ services:
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-    volumes: 
-      - mysql-data:/var/lib/mysql
+    volumes:
+      - /mnt/do-volume/mysql:/var/lib/mysql
     healthcheck:
       test: mysqladmin --user=$$MYSQL_USER --password=$$MYSQL_PASSWORD ping
       start_period: 5s
@@ -52,21 +51,21 @@ services:
       - default
 
   mautic_cron:
-      build:
-        context: .
-        dockerfile: Dockerfile
-      links:
-        - db:mysql
-      volumes: *mautic-volumes
-      environment:
-        - DOCKER_MAUTIC_ROLE=mautic_cron
-      env_file:
-        - .mautic_env
-      depends_on:
-        mautic_web:
-          condition: service_healthy
-      networks:
-        - default
+    build:
+      context: .
+      dockerfile: Dockerfile
+    links:
+      - db:mysql
+    volumes: *mautic-volumes
+    environment:
+      - DOCKER_MAUTIC_ROLE=mautic_cron
+    env_file:
+      - .mautic_env
+    depends_on:
+      mautic_web:
+        condition: service_healthy
+    networks:
+      - default
 
   mautic_worker:
     build:
