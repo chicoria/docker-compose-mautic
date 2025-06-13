@@ -83,15 +83,26 @@ jobs:
       - name: Attach Block Storage Volumes
         run: |
           # Get droplet ID
-          DROPLET_ID=$(doctl compute droplet list --format ID --no-header --filter name=mautic-vps)
+          DROPLET_ID=$(doctl compute droplet list --format ID --no-header | grep mautic-vps | awk '{print $1}')
 
           # Get volume IDs
-          MYSQL_VOLUME_ID=$(doctl compute volume list --format ID --no-header --filter name=mautic-mysql)
-          FILES_VOLUME_ID=$(doctl compute volume list --format ID --no-header --filter name=mautic-files)
+          MYSQL_VOLUME_ID=$(doctl compute volume list --format ID,Name --no-header | grep mautic-mysql | awk '{print $1}')
+          FILES_VOLUME_ID=$(doctl compute volume list --format ID,Name --no-header | grep mautic-files | awk '{print $1}')
 
           # Attach volumes to droplet
-          doctl compute volume-action attach $MYSQL_VOLUME_ID $DROPLET_ID
-          doctl compute volume-action attach $FILES_VOLUME_ID $DROPLET_ID
+          if [ -n "$MYSQL_VOLUME_ID" ]; then
+            echo "Attaching MySQL volume..."
+            doctl compute volume-action attach $MYSQL_VOLUME_ID $DROPLET_ID
+          else
+            echo "MySQL volume not found"
+          fi
+
+          if [ -n "$FILES_VOLUME_ID" ]; then
+            echo "Attaching Files volume..."
+            doctl compute volume-action attach $FILES_VOLUME_ID $DROPLET_ID
+          else
+            echo "Files volume not found"
+          fi
 
       - name: Get VPS IP
         run: |
