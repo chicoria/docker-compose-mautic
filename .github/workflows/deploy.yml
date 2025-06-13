@@ -123,45 +123,56 @@ jobs:
             exit 1
           fi
 
-          # Get the existing DNS record ID
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=${{ vars.DOMAIN }}" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-            -H "Content-Type: application/json" | jq -r '.result[0].id')
+          # Function to update or create DNS record
+          update_dns_record() {
+            local record_name=$1
+            echo "Processing DNS record for $record_name"
+            
+            # Get the existing DNS record ID
+            local RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=$record_name" \
+              -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+              -H "Content-Type: application/json" | jq -r '.result[0].id')
+            
+            if [ -z "$RECORD_ID" ] || [ "$RECORD_ID" = "null" ]; then
+              # Create new A record if it doesn't exist
+              echo "Creating new A record for $record_name"
+              curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+                -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+                -H "Content-Type: application/json" \
+                --data "{
+                  \"type\": \"A\",
+                  \"name\": \"$record_name\",
+                  \"content\": \"${{ env.ip }}\",
+                  \"ttl\": 1,
+                  \"proxied\": true
+                }"
+            else
+              # Update existing A record
+              echo "Updating A record for $record_name"
+              curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$RECORD_ID" \
+                -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+                -H "Content-Type: application/json" \
+                --data "{
+                  \"type\": \"A\",
+                  \"name\": \"$record_name\",
+                  \"content\": \"${{ env.ip }}\",
+                  \"ttl\": 1,
+                  \"proxied\": true
+                }"
+            fi
+          }
 
-          if [ -z "$RECORD_ID" ] || [ "$RECORD_ID" = "null" ]; then
-            # Create new A record if it doesn't exist
-            echo "Creating new A record for ${{ vars.DOMAIN }}"
-            curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
-              -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-              -H "Content-Type: application/json" \
-              --data "{
-                \"type\": \"A\",
-                \"name\": \"${{ vars.DOMAIN }}\",
-                \"content\": \"${{ env.ip }}\",
-                \"ttl\": 1,
-                \"proxied\": true
-              }"
-          else
-            # Update existing A record
-            echo "Updating A record for ${{ vars.DOMAIN }}"
-            curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$RECORD_ID" \
-              -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-              -H "Content-Type: application/json" \
-              --data "{
-                \"type\": \"A\",
-                \"name\": \"${{ vars.DOMAIN }}\",
-                \"content\": \"${{ env.ip }}\",
-                \"ttl\": 1,
-                \"proxied\": true
-              }"
-          fi
+          # Update both main domain and subdomain
+          update_dns_record "${{ vars.DOMAIN }}"
+          update_dns_record "m.${{ vars.DOMAIN }}"
 
           # Wait for DNS propagation
           echo "Waiting for DNS propagation..."
           for i in {1..30}; do
             DOMAIN_IP=$(dig +short ${{ vars.DOMAIN }})
-            if [ "$DOMAIN_IP" == "${{ env.ip }}" ]; then
-              echo "Domain ${{ vars.DOMAIN }} correctly points to the droplet IP."
+            SUBDOMAIN_IP=$(dig +short m.${{ vars.DOMAIN }})
+            if [ "$DOMAIN_IP" == "${{ env.ip }}" ] && [ "$SUBDOMAIN_IP" == "${{ env.ip }}" ]; then
+              echo "Domain ${{ vars.DOMAIN }} and m.${{ vars.DOMAIN }} correctly point to the droplet IP."
               break
             fi
             if [ $i -eq 30 ]; then
