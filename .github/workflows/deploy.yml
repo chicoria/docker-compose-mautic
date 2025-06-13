@@ -93,14 +93,14 @@ jobs:
           # Attach volumes to droplet
           if [ -n "$MYSQL_VOLUME_ID" ]; then
             echo "Attaching MySQL volume..."
-            doctl compute volume-action attach "$MYSQL_VOLUME_ID" --droplet-id "$DROPLET_ID"
+            doctl compute volume-action attach "$MYSQL_VOLUME_ID" "$DROPLET_ID"
           else
             echo "MySQL volume not found"
           fi
 
           if [ -n "$FILES_VOLUME_ID" ]; then
             echo "Attaching Files volume..."
-            doctl compute volume-action attach "$FILES_VOLUME_ID" --droplet-id "$DROPLET_ID"
+            doctl compute volume-action attach "$FILES_VOLUME_ID" "$DROPLET_ID"
           else
             echo "Files volume not found"
           fi
