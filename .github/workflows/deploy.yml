@@ -61,7 +61,7 @@ jobs:
       - name: Create VPS if it doesn't exist
         run: |
           if ! doctl compute droplet list | grep -q 'mautic-vps'; then
-            doctl compute droplet create mautic-vps --image docker-20-04 --size s-1vcpu-1gb --region nyc1 --ssh-keys ${{ secrets.DIGITALOCEAN_SSH_FINGERPRINT }} --wait --user-data-file setup-vps.sh --enable-monitoring
+            doctl compute droplet create mautic-vps --image docker-20-04 --size s-1vcpu-1gb --region nyc3 --ssh-keys ${{ secrets.DIGITALOCEAN_SSH_FINGERPRINT }} --wait --user-data-file setup-vps.sh --enable-monitoring
             echo "droplet_created=true" >> $GITHUB_ENV
           else
             echo "Droplet 'mautic-vps' already exists."
@@ -72,12 +72,12 @@ jobs:
         run: |
           # Create MySQL volume if it doesn't exist
           if ! doctl compute volume list | grep -q 'mautic-mysql'; then
-            doctl compute volume create mautic-mysql --size 10GiB --region nyc1 --fs-type ext4
+            doctl compute volume create mautic-mysql --size 10GiB --region nyc3 --fs-type ext4
           fi
 
           # Create Mautic volume if it doesn't exist
           if ! doctl compute volume list | grep -q 'mautic-files'; then
-            doctl compute volume create mautic-files --size 20GiB --region nyc1 --fs-type ext4
+            doctl compute volume create mautic-files --size 20GiB --region nyc3 --fs-type ext4
           fi
 
       - name: Attach Block Storage Volumes
