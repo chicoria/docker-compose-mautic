@@ -16,3 +16,16 @@ sudo ufw allow 443
 # Install Nginx
 sudo apt-get update
 sudo apt-get install -y nginx certbot python3-certbot-nginx vim nano
+
+# Create mount points for DigitalOcean Block Storage
+sudo mkdir -p /mnt/do-volume
+sudo mkdir -p /mnt/do-volume/mysql
+sudo mkdir -p /mnt/do-volume/mautic/config
+sudo mkdir -p /mnt/do-volume/mautic/logs
+sudo mkdir -p /mnt/do-volume/mautic/media/files
+sudo mkdir -p /mnt/do-volume/mautic/media/images
+sudo mkdir -p /mnt/do-volume/cron
+
+# Set proper permissions
+sudo chown -R 1000:1000 /mnt/do-volume/mautic
+sudo chown -R 999:999 /mnt/do-volume/mysql
