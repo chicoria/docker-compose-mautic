@@ -52,7 +52,7 @@ echo -e "\n${YELLOW}Attaching Volumes...${NC}"
 # MySQL Volume
 if [ -n "$MYSQL_VOLUME_ID" ]; then
     echo "Attaching MySQL volume..."
-    if doctl compute volume-action attach $MYSQL_VOLUME_ID $DROPLET_ID; then
+    if doctl compute volume-action attach "$MYSQL_VOLUME_ID" --droplet-id "$DROPLET_ID"; then
         echo -e "${GREEN}MySQL volume attached successfully${NC}"
     else
         echo -e "${RED}Failed to attach MySQL volume${NC}"
@@ -62,7 +62,7 @@ fi
 # Files Volume
 if [ -n "$FILES_VOLUME_ID" ]; then
     echo "Attaching Files volume..."
-    if doctl compute volume-action attach $FILES_VOLUME_ID $DROPLET_ID; then
+    if doctl compute volume-action attach "$FILES_VOLUME_ID" --droplet-id "$DROPLET_ID"; then
         echo -e "${GREEN}Files volume attached successfully${NC}"
     else
         echo -e "${RED}Failed to attach Files volume${NC}"

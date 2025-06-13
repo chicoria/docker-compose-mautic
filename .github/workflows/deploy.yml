@@ -80,10 +80,11 @@ jobs:
             doctl compute volume create mautic-files --size 20GiB --region nyc3 --fs-type ext4
           fi
 
-      - name: Attach Block Storage Volumes
+      - name: Attach Volumes
+        if: env.droplet_created == 'true'
         run: |
           # Get droplet ID
-          DROPLET_ID=$(doctl compute droplet list --format ID --no-header | grep mautic-vps | awk '{print $1}')
+          DROPLET_ID=$(doctl compute droplet list --format ID,Name --no-header | grep mautic-vps | awk '{print $1}')
 
           # Get volume IDs
           MYSQL_VOLUME_ID=$(doctl compute volume list --format ID,Name --no-header | grep mautic-mysql | awk '{print $1}')
@@ -92,14 +93,14 @@ jobs:
           # Attach volumes to droplet
           if [ -n "$MYSQL_VOLUME_ID" ]; then
             echo "Attaching MySQL volume..."
-            doctl compute volume-action attach $MYSQL_VOLUME_ID $DROPLET_ID
+            doctl compute volume-action attach "$MYSQL_VOLUME_ID" --droplet-id "$DROPLET_ID"
           else
             echo "MySQL volume not found"
           fi
 
           if [ -n "$FILES_VOLUME_ID" ]; then
             echo "Attaching Files volume..."
-            doctl compute volume-action attach $FILES_VOLUME_ID $DROPLET_ID
+            doctl compute volume-action attach "$FILES_VOLUME_ID" --droplet-id "$DROPLET_ID"
           else
             echo "Files volume not found"
           fi
