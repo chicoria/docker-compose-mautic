@@ -111,8 +111,14 @@ jobs:
           echo "ip=$IP" >> $GITHUB_ENV
 
       - name: Update Cloudflare DNS Record
-        if: ${{ vars.DOMAIN && secrets.CLOUDFLARE_API_TOKEN }}
+        if: ${{ vars.DOMAIN != '' }}
         run: |
+          # Check if Cloudflare API token is available
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
+            echo "Warning: CLOUDFLARE_API_TOKEN not set. Skipping DNS update."
+            exit 0
+          fi
+
           # Get the zone ID for the domain
           ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$(echo ${{ vars.DOMAIN }} | awk -F. '{print $(NF-1) "." $NF}')" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
