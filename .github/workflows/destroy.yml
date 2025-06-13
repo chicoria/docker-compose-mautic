@@ -1,0 +1,121 @@
+name: Destroy DigitalOcean Droplet
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_destroy:
+        description: 'Type "destroy" to confirm droplet deletion'
+        required: true
+        type: string
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm_destroy == 'destroy'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check required secrets
+        env:
+          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+        run: |
+          if [ -z "${DIGITALOCEAN_ACCESS_TOKEN}" ]; then
+            echo "Error: Missing required secret: DIGITALOCEAN_ACCESS_TOKEN"
+            exit 1
+          fi
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Get Droplet Information
+        id: droplet_info
+        run: |
+          if ! doctl compute droplet list | grep -q 'mautic-vps'; then
+            echo "Droplet 'mautic-vps' does not exist."
+            echo "droplet_exists=false" >> $GITHUB_ENV
+          else
+            echo "Droplet 'mautic-vps' exists."
+            echo "droplet_exists=true" >> $GITHUB_ENV
+            
+            # Get droplet IP for logging
+            IP=$(doctl compute droplet get mautic-vps --format PublicIPv4 --no-header)
+            echo "Droplet IP: $IP"
+          fi
+
+      - name: Get Volume Information
+        id: volume_info
+        run: |
+          echo "Checking for associated volumes..."
+          MYSQL_VOLUME=$(doctl compute volume list --format Name,ID --no-header | grep mautic-mysql || true)
+          FILES_VOLUME=$(doctl compute volume list --format Name,ID --no-header | grep mautic-files || true)
+
+          if [ -n "$MYSQL_VOLUME" ]; then
+            echo "Found MySQL volume: $MYSQL_VOLUME"
+            echo "mysql_volume_exists=true" >> $GITHUB_ENV
+          else
+            echo "No MySQL volume found"
+            echo "mysql_volume_exists=false" >> $GITHUB_ENV
+          fi
+
+          if [ -n "$FILES_VOLUME" ]; then
+            echo "Found Files volume: $FILES_VOLUME"
+            echo "files_volume_exists=true" >> $GITHUB_ENV
+          else
+            echo "No Files volume found"
+            echo "files_volume_exists=false" >> $GITHUB_ENV
+          fi
+
+      - name: Detach Volumes
+        if: ${{ env.droplet_exists == 'true' && (env.mysql_volume_exists == 'true' || env.files_volume_exists == 'true') }}
+        run: |
+          if [ "${{ env.mysql_volume_exists }}" = "true" ]; then
+            echo "Detaching MySQL volume..."
+            MYSQL_VOLUME_ID=$(doctl compute volume list --format ID --no-header --filter name=mautic-mysql)
+            doctl compute volume-action detach $MYSQL_VOLUME_ID
+          fi
+
+          if [ "${{ env.files_volume_exists }}" = "true" ]; then
+            echo "Detaching Files volume..."
+            FILES_VOLUME_ID=$(doctl compute volume list --format ID --no-header --filter name=mautic-files)
+            doctl compute volume-action detach $FILES_VOLUME_ID
+          fi
+
+      - name: Destroy Droplet
+        if: ${{ env.droplet_exists == 'true' }}
+        run: |
+          echo "Destroying droplet 'mautic-vps'..."
+          doctl compute droplet delete mautic-vps --force
+          echo "Droplet destroyed successfully."
+
+      - name: Delete Volumes
+        if: ${{ env.mysql_volume_exists == 'true' || env.files_volume_exists == 'true' }}
+        run: |
+          if [ "${{ env.mysql_volume_exists }}" = "true" ]; then
+            echo "Deleting MySQL volume..."
+            MYSQL_VOLUME_ID=$(doctl compute volume list --format ID --no-header --filter name=mautic-mysql)
+            doctl compute volume delete $MYSQL_VOLUME_ID --force
+          fi
+
+          if [ "${{ env.files_volume_exists }}" = "true" ]; then
+            echo "Deleting Files volume..."
+            FILES_VOLUME_ID=$(doctl compute volume list --format ID --no-header --filter name=mautic-files)
+            doctl compute volume delete $FILES_VOLUME_ID --force
+          fi
+
+      - name: Cleanup Complete
+        run: |
+          echo "Cleanup completed successfully."
+          echo "The following resources were destroyed:"
+          if [ "${{ env.droplet_exists }}" = "true" ]; then
+            echo "- Droplet 'mautic-vps'"
+          fi
+          if [ "${{ env.mysql_volume_exists }}" = "true" ]; then
+            echo "- MySQL volume 'mautic-mysql'"
+          fi
+          if [ "${{ env.files_volume_exists }}" = "true" ]; then
+            echo "- Files volume 'mautic-files'"
+          fi
