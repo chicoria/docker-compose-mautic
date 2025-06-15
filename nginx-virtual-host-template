@@ -1,4 +1,4 @@
-# REDIRECIONA HTTP PARA HTTPS (opcional, pode remover se ainda não usar HTTPS)
+# REDIRECIONA HTTP PARA HTTPS
 server {
     listen 80;
     server_name DOMAIN_NAME m.DOMAIN_NAME;
@@ -12,10 +12,13 @@ server {
     listen 443 ssl;
     server_name DOMAIN_NAME;
 
-    ssl_certificate /etc/letsencrypt/live/DOMAIN_NAME/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/DOMAIN_NAME/privkey.pem;
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    # Cloudflare SSL configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_tickets off;
 
     # Regra para a raiz: /
     location = / {
@@ -52,10 +55,13 @@ server {
     listen 443 ssl;
     server_name m.DOMAIN_NAME;
 
-    ssl_certificate /etc/letsencrypt/live/m.DOMAIN_NAME/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/m.DOMAIN_NAME/privkey.pem;
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    # Cloudflare SSL configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_tickets off;
 
     location / {
         proxy_pass http://localhost:8001;
