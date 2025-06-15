@@ -40,37 +40,31 @@ if [[ "$DOMAIN" == *"DOMAIN_NAME"* ]]; then
     exit 0
 fi
 
-# Check if SKIP_DNS_CHECK is set to true
-if [ "${SKIP_DNS_CHECK:-false}" = "true" ]; then
-    echo "## DNS check skipped as requested"
-    DROPLET_IP=$(curl -s http://icanhazip.com)
-else
-    DROPLET_IP=$(curl -s http://icanhazip.com)
-    echo "## Checking if $DOMAIN points to this DO droplet..."
+DROPLET_IP=$(curl -s http://icanhazip.com)
+echo "## Checking if $DOMAIN points to this DO droplet..."
 
-    # First check if the domain is using Cloudflare
-    if dig +short NS $DOMAIN | grep -q "cloudflare"; then
-        echo "## Domain is using Cloudflare DNS"
-        
-        # Check if the domain is proxied through Cloudflare
-        if dig +short $DOMAIN | grep -q "cloudflare"; then
-            echo "## Domain is proxied through Cloudflare, skipping DNS propagation check"
-        else
-            # Domain is using Cloudflare but not proxied, check the A record
-            DOMAIN_IP=$(dig +short $DOMAIN)
-            if [ "$DOMAIN_IP" != "$DROPLET_IP" ]; then
-                echo "## $DOMAIN does not point to this droplet IP ($DROPLET_IP). Please update your Cloudflare A record."
-                exit 1
-            fi
-        fi
+# First check if the domain is using Cloudflare
+if dig +short NS $DOMAIN | grep -q "cloudflare"; then
+    echo "## Domain is using Cloudflare DNS"
+    
+    # Check if the domain is proxied through Cloudflare
+    if dig +short $DOMAIN | grep -q "cloudflare"; then
+        echo "## Domain is proxied through Cloudflare, skipping DNS propagation check"
     else
-        # Not using Cloudflare, do standard DNS check
-        echo "## Domain is not using Cloudflare, performing standard DNS check"
+        # Domain is using Cloudflare but not proxied, check the A record
         DOMAIN_IP=$(dig +short $DOMAIN)
         if [ "$DOMAIN_IP" != "$DROPLET_IP" ]; then
-            echo "## $DOMAIN does not point to this droplet IP ($DROPLET_IP). Exiting..."
+            echo "## $DOMAIN does not point to this droplet IP ($DROPLET_IP). Please update your Cloudflare A record."
             exit 1
         fi
+    fi
+else
+    # Not using Cloudflare, do standard DNS check
+    echo "## Domain is not using Cloudflare, performing standard DNS check"
+    DOMAIN_IP=$(dig +short $DOMAIN)
+    if [ "$DOMAIN_IP" != "$DROPLET_IP" ]; then
+        echo "## $DOMAIN does not point to this droplet IP ($DROPLET_IP). Exiting..."
+        exit 1
     fi
 fi
 
