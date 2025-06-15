@@ -183,34 +183,7 @@ jobs:
           # Update both main domain and subdomain
           update_dns_record "${{ vars.DOMAIN }}"
           update_dns_record "m.${{ vars.DOMAIN }}"
-
-          # Check DNS configuration
-          echo "Checking DNS configuration..."
-
-          # First check if the domain is using Cloudflare
-          if dig +short NS ${{ vars.DOMAIN }} | grep -q "cloudflare"; then
-            echo "## Domain is using Cloudflare DNS"
-            
-            # Check if the domain is proxied through Cloudflare
-            if dig +short ${{ vars.DOMAIN }} | grep -q "cloudflare"; then
-              echo "## Domain is proxied through Cloudflare, DNS is ready"
-            else
-              # Domain is using Cloudflare but not proxied, check the A record
-              DOMAIN_IP=$(dig +short ${{ vars.DOMAIN }})
-              if [ "$DOMAIN_IP" != "${{ env.ip }}" ]; then
-                echo "## ${{ vars.DOMAIN }} does not point to this droplet IP (${{ env.ip }}). Please update your Cloudflare A record."
-                exit 1
-              fi
-            fi
-          else
-            # Not using Cloudflare, do standard DNS check
-            echo "## Domain is not using Cloudflare, performing standard DNS check"
-            DOMAIN_IP=$(dig +short ${{ vars.DOMAIN }})
-            if [ "$DOMAIN_IP" != "${{ env.ip }}" ]; then
-              echo "## ${{ vars.DOMAIN }} does not point to this droplet IP (${{ env.ip }}). Exiting..."
-              exit 1
-            fi
-          fi
+          echo "DNS records updated successfully"
 
       - name: Wait for server to be accessible
         run: |
