@@ -15,7 +15,7 @@ sudo ufw allow 443
 
 # Install Nginx
 sudo apt-get update
-sudo apt-get install -y nginx certbot python3-certbot-nginx vim nano
+sudo apt-get install -y nginx vim nano
 
 # Create mount points for DigitalOcean Block Storage
 sudo mkdir -p /mnt/do-volume
@@ -29,3 +29,7 @@ sudo mkdir -p /mnt/do-volume/cron
 # Set proper permissions
 sudo chown -R 1000:1000 /mnt/do-volume/mautic
 sudo chown -R 999:999 /mnt/do-volume/mysql
+
+# Create SSL directory for Cloudflare
+sudo mkdir -p /etc/nginx/ssl
+sudo chmod 700 /etc/nginx/ssl

@@ -40,13 +40,38 @@ if [[ "$DOMAIN" == *"DOMAIN_NAME"* ]]; then
     exit 0
 fi
 
-DROPLET_IP=$(curl -s http://icanhazip.com)
+# Check if SKIP_DNS_CHECK is set to true
+if [ "${SKIP_DNS_CHECK:-false}" = "true" ]; then
+    echo "## DNS check skipped as requested"
+    DROPLET_IP=$(curl -s http://icanhazip.com)
+else
+    DROPLET_IP=$(curl -s http://icanhazip.com)
+    echo "## Checking if $DOMAIN points to this DO droplet..."
 
-echo "## Checking if $DOMAIN points to this DO droplet..."
-DOMAIN_IP=$(dig +short $DOMAIN)
-if [ "$DOMAIN_IP" != "$DROPLET_IP" ]; then
-    echo "## $DOMAIN does not point to this droplet IP ($DROPLET_IP). Exiting..."
-    exit 1
+    # First check if the domain is using Cloudflare
+    if dig +short NS $DOMAIN | grep -q "cloudflare"; then
+        echo "## Domain is using Cloudflare DNS"
+        
+        # Check if the domain is proxied through Cloudflare
+        if dig +short $DOMAIN | grep -q "cloudflare"; then
+            echo "## Domain is proxied through Cloudflare, skipping DNS propagation check"
+        else
+            # Domain is using Cloudflare but not proxied, check the A record
+            DOMAIN_IP=$(dig +short $DOMAIN)
+            if [ "$DOMAIN_IP" != "$DROPLET_IP" ]; then
+                echo "## $DOMAIN does not point to this droplet IP ($DROPLET_IP). Please update your Cloudflare A record."
+                exit 1
+            fi
+        fi
+    else
+        # Not using Cloudflare, do standard DNS check
+        echo "## Domain is not using Cloudflare, performing standard DNS check"
+        DOMAIN_IP=$(dig +short $DOMAIN)
+        if [ "$DOMAIN_IP" != "$DROPLET_IP" ]; then
+            echo "## $DOMAIN does not point to this droplet IP ($DROPLET_IP). Exiting..."
+            exit 1
+        fi
+    fi
 fi
 
 echo "## $DOMAIN is available and points to this droplet. Nginx configuration..."
@@ -78,25 +103,8 @@ else
     nginx -s reload
 fi
 
-echo "## Configuring Let's Encrypt for $DOMAIN..."
-
-# Use Certbot with the Nginx plugin to obtain and install a certificate
-certbot --nginx -d $DOMAIN -d m.$DOMAIN --non-interactive --agree-tos -m {{EMAIL_ADDRESS}}
-
-# Nginx will be reloaded automatically by Certbot after obtaining the certificate
-echo "## Let's Encrypt configured for $DOMAIN"
-
-# Check if the cron job for renewal is already set
-if ! crontab -l | grep -q 'certbot renew'; then
-    echo "## Setting up cron job for Let's Encrypt certificate renewal..."
-    (crontab -l 2>/dev/null; echo "0 0 1 * * certbot renew --post-hook 'systemctl reload nginx'") | crontab -
-else
-    echo "## Cron job for Let's Encrypt certificate renewal is already set"
-fi
-
 echo "## Check if Mautic is installed"
 if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && docker compose exec -T mautic_web test -f /var/www/html/config/local.php; then
-    
     # Replace the site_url value with the domain
     echo "## Updating site_url in Mautic configuration..."
     docker compose exec -T mautic_web sed -i "s|'site_url' => '.*',|'site_url' => 'https://m.$DOMAIN',|g" /var/www/html/config/local.php
