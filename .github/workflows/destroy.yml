@@ -74,13 +74,13 @@ jobs:
         run: |
           if [ "${{ env.mysql_volume_exists }}" = "true" ]; then
             echo "Detaching MySQL volume..."
-            MYSQL_VOLUME_ID=$(doctl compute volume list --format ID --no-header --filter name=mautic-mysql)
+            MYSQL_VOLUME_ID=$(doctl compute volume list --format ID,Name --no-header | grep mautic-mysql | awk '{print $1}')
             doctl compute volume-action detach $MYSQL_VOLUME_ID
           fi
 
           if [ "${{ env.files_volume_exists }}" = "true" ]; then
             echo "Detaching Files volume..."
-            FILES_VOLUME_ID=$(doctl compute volume list --format ID --no-header --filter name=mautic-files)
+            FILES_VOLUME_ID=$(doctl compute volume list --format ID,Name --no-header | grep mautic-files | awk '{print $1}')
             doctl compute volume-action detach $FILES_VOLUME_ID
           fi
 
@@ -96,13 +96,13 @@ jobs:
         run: |
           if [ "${{ env.mysql_volume_exists }}" = "true" ]; then
             echo "Deleting MySQL volume..."
-            MYSQL_VOLUME_ID=$(doctl compute volume list --format ID --no-header --filter name=mautic-mysql)
+            MYSQL_VOLUME_ID=$(doctl compute volume list --format ID,Name --no-header | grep mautic-mysql | awk '{print $1}')
             doctl compute volume delete $MYSQL_VOLUME_ID --force
           fi
 
           if [ "${{ env.files_volume_exists }}" = "true" ]; then
             echo "Deleting Files volume..."
-            FILES_VOLUME_ID=$(doctl compute volume list --format ID --no-header --filter name=mautic-files)
+            FILES_VOLUME_ID=$(doctl compute volume list --format ID,Name --no-header | grep mautic-files | awk '{print $1}')
             doctl compute volume delete $FILES_VOLUME_ID --force
           fi
 
