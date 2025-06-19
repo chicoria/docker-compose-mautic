@@ -72,16 +72,21 @@ jobs:
       - name: Detach Volumes
         if: ${{ env.droplet_exists == 'true' && (env.mysql_volume_exists == 'true' || env.files_volume_exists == 'true') }}
         run: |
-          if [ "${{ env.mysql_volume_exists }}" = "true" ]; then
+          # Get Droplet ID
+          DROPLET_ID=$(doctl compute droplet list --format ID,Name --no-header | grep mautic-vps | awk '{print $1}')
+
+          # MySQL Volume
+          MYSQL_VOLUME_ID=$(doctl compute volume list --format ID,Name --no-header | grep mautic-mysql | awk '{print $1}')
+          if [ -n "$MYSQL_VOLUME_ID" ] && [ -n "$DROPLET_ID" ]; then
             echo "Detaching MySQL volume..."
-            MYSQL_VOLUME_ID=$(doctl compute volume list --format ID,Name --no-header | grep mautic-mysql | awk '{print $1}')
-            doctl compute volume-action detach $MYSQL_VOLUME_ID
+            doctl compute volume-action detach "$MYSQL_VOLUME_ID" "$DROPLET_ID"
           fi
 
-          if [ "${{ env.files_volume_exists }}" = "true" ]; then
+          # Files Volume
+          FILES_VOLUME_ID=$(doctl compute volume list --format ID,Name --no-header | grep mautic-files | awk '{print $1}')
+          if [ -n "$FILES_VOLUME_ID" ] && [ -n "$DROPLET_ID" ]; then
             echo "Detaching Files volume..."
-            FILES_VOLUME_ID=$(doctl compute volume list --format ID,Name --no-header | grep mautic-files | awk '{print $1}')
-            doctl compute volume-action detach $FILES_VOLUME_ID
+            doctl compute volume-action detach "$FILES_VOLUME_ID" "$DROPLET_ID"
           fi
 
       - name: Destroy Droplet
