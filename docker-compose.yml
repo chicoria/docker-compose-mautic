@@ -21,6 +21,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+        reservations:
+          memory: 1G
     networks:
       - default
 
@@ -44,6 +50,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 100
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
     depends_on:
       db:
         condition: service_healthy
@@ -61,6 +73,12 @@ services:
       - DOCKER_MAUTIC_ROLE=mautic_cron
     env_file:
       - .mautic_env
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
     depends_on:
       mautic_web:
         condition: service_healthy
@@ -85,6 +103,11 @@ services:
       - default
     deploy:
       replicas: 1
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 384M
 
 volumes:
   mysql-data:
