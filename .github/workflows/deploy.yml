@@ -187,7 +187,6 @@ jobs:
           }
 
           # Update both main domain and subdomain
-          update_dns_record "${{ vars.DOMAIN }}"
           update_dns_record "m.${{ vars.DOMAIN }}"
           echo "DNS records updated successfully"
 
