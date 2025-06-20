@@ -12,6 +12,7 @@ load_dotenv('.mautic_env')
 MAUTIC_URL = os.getenv("MAUTIC_URL", "https://your-mautic-instance.com")
 MAUTIC_USER = os.getenv("MAUTIC_USER", "your_mautic_username")
 MAUTIC_PASSWORD = os.getenv("MAUTIC_PASSWORD", "your_mautic_password")
+MAUTIC_IP_FALLBACK_URL = os.getenv("MAUTIC_IP_FALLBACK_URL", "")
 
 # If MAUTIC_URL is not set, construct it from other variables
 if MAUTIC_URL == "https://your-mautic-instance.com":
@@ -27,6 +28,8 @@ if MAUTIC_URL == "https://your-mautic-instance.com":
 
 print(f"Using Mautic URL: {MAUTIC_URL}")
 print(f"Using Mautic User: {MAUTIC_USER}")
+if MAUTIC_IP_FALLBACK_URL:
+    print(f"IP Fallback URL available: {MAUTIC_IP_FALLBACK_URL}")
 
 # --- Form and Field Definitions ---
 # This payload defines the form and its fields according to the Mautic API structure.
@@ -91,15 +94,34 @@ api_endpoint = f"{MAUTIC_URL}/api/forms/new"
 
 print(f"Enviando requisição para: {api_endpoint}")
 
-try:
-    response = requests.post(
-        api_endpoint,
-        json=form_payload,
-        auth=(MAUTIC_USER, MAUTIC_PASSWORD)
-    )
-    # Raise an exception for bad status codes (4xx or 5xx)
-    response.raise_for_status()
+def try_create_form(url):
+    """Try to create form with given URL"""
+    api_endpoint = f"{url}/api/forms/new"
+    print(f"Tentando criar formulário em: {api_endpoint}")
+    
+    try:
+        response = requests.post(
+            api_endpoint,
+            json=form_payload,
+            auth=(MAUTIC_USER, MAUTIC_PASSWORD),
+            timeout=30
+        )
+        response.raise_for_status()
+        return response, None
+    except requests.exceptions.RequestException as e:
+        return None, e
 
+# Try main URL first
+response, error = try_create_form(MAUTIC_URL)
+
+# If main URL fails and we have a fallback, try it
+if response is None and MAUTIC_IP_FALLBACK_URL:
+    print(f"URL principal falhou: {error}")
+    print(f"Tentando URL de fallback: {MAUTIC_IP_FALLBACK_URL}")
+    response, error = try_create_form(MAUTIC_IP_FALLBACK_URL)
+
+# Process the response
+if response is not None:
     # --- Process Response ---
     if response.status_code == 201:
         print("\nFormulário 'FormInteresse1' criado com sucesso!")
@@ -109,15 +131,18 @@ try:
     else:
         print(f"\nErro ao criar o formulário. Status: {response.status_code}")
         print("Resposta:", response.text)
-
-except requests.exceptions.HTTPError as errh:
-    print(f"\nErro HTTP: {errh}")
-    print("Verifique se a URL, usuário e senha estão corretos e se o usuário tem as permissões necessárias.")
-    print("Detalhes da resposta do servidor:", response.text)
-except requests.exceptions.ConnectionError as errc:
-    print(f"\nErro de Conexão: {errc}")
-    print("Não foi possível conectar ao Mautic. Verifique a URL e sua conexão com a internet.")
-except requests.exceptions.Timeout as errt:
-    print(f"\nErro de Timeout: {errt}")
-except requests.exceptions.RequestException as err:
-    print(f"\nAlgo deu errado: {err}") 
+else:
+    # Handle the error
+    if isinstance(error, requests.exceptions.HTTPError):
+        print(f"\nErro HTTP: {error}")
+        print("Verifique se a URL, usuário e senha estão corretos e se o usuário tem as permissões necessárias.")
+        if hasattr(error, 'response') and error.response is not None:
+            print("Detalhes da resposta do servidor:", error.response.text)
+    elif isinstance(error, requests.exceptions.ConnectionError):
+        print(f"\nErro de Conexão: {error}")
+        print("Não foi possível conectar ao Mautic. Verifique a URL e sua conexão com a internet.")
+    elif isinstance(error, requests.exceptions.Timeout):
+        print(f"\nErro de Timeout: {error}")
+        print("A requisição demorou muito para responder.")
+    else:
+        print(f"\nAlgo deu errado: {error}") 
