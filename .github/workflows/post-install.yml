@@ -1,0 +1,104 @@
+name: Post-Installation Configurations
+
+# This workflow is triggered manually from the Actions tab on your GitHub repository.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to run configurations against"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+
+jobs:
+  configure:
+    name: Run Post-Installation Steps for ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check required secrets
+        env:
+          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          MAUTIC_PASSWORD: ${{ secrets.MAUTIC_PASSWORD }}
+          EMAIL_ADDRESS: ${{ vars.EMAIL_ADDRESS }}
+          DOMAIN: ${{ vars.DOMAIN }}
+        run: |
+          error_missing_secrets=()
+          check_secret() {
+            if [ -z "${!1}" ]; then
+              error_missing_secrets+=("$1")
+            fi
+          }
+
+          check_secret "DIGITALOCEAN_ACCESS_TOKEN"
+          check_secret "MAUTIC_PASSWORD"
+          check_secret "EMAIL_ADDRESS"
+
+          if [ ${#error_missing_secrets[@]} -ne 0 ]; then
+            echo "Error: Missing required secrets/variables: ${error_missing_secrets[*]}"
+            exit 1
+          fi
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Get VPS IP and construct Mautic URL
+        run: |
+          # Get the droplet IP
+          IP=$(doctl compute droplet get mautic-vps --format PublicIPv4 --no-header)
+          if [ -z "$IP" ]; then
+            echo "Error: Could not get IP address for mautic-vps droplet"
+            exit 1
+          fi
+          echo "Droplet IP: $IP"
+
+          # Load .mautic_env to get port
+          set -a
+          source .mautic_env
+          set +a
+
+          # Construct Mautic URL
+          if [ -n "$DOMAIN" ]; then
+            MAUTIC_URL="https://m.${DOMAIN}"
+          else
+            MAUTIC_URL="http://${IP}:${MAUTIC_PORT}"
+          fi
+
+          echo "Mautic URL: $MAUTIC_URL"
+          echo "MAUTIC_URL=$MAUTIC_URL" >> $GITHUB_ENV
+          echo "MAUTIC_USER=$EMAIL_ADDRESS" >> $GITHUB_ENV
+        env:
+          DOMAIN: ${{ vars.DOMAIN }}
+          EMAIL_ADDRESS: ${{ vars.EMAIL_ADDRESS }}
+
+      - name: Setup Python environment
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Update .mautic_env with deployment values
+        run: |
+          # Update the existing .mautic_env file with deployment-specific values
+          sed -i "s|MAUTIC_URL=.*|MAUTIC_URL=\"${{ env.MAUTIC_URL }}\"|" .mautic_env
+          sed -i "s|MAUTIC_USER=.*|MAUTIC_USER=\"${{ env.MAUTIC_USER }}\"|" .mautic_env
+          sed -i "s|MAUTIC_PASSWORD=.*|MAUTIC_PASSWORD=\"${{ secrets.MAUTIC_PASSWORD }}\"|" .mautic_env
+          echo "Updated .mautic_env file:"
+          cat .mautic_env
+
+      - name: Run Mautic form creation script
+        run: |
+          echo "Creating Mautic form using URL: ${{ env.MAUTIC_URL }}"
+          echo "Using user: ${{ env.MAUTIC_USER }}"
+          python create_mautic_form.py
+
+      - name: Finalizing
+        run: |
+          echo "Post-installation steps completed successfully for the ${{ github.event.inputs.environment }} environment."
+          echo "Mautic form 'FormInteresse1' should now be available at: ${{ env.MAUTIC_URL }}"
