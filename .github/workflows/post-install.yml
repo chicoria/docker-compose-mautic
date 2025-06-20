@@ -64,32 +64,14 @@ jobs:
           source .mautic_env
           set +a
 
-          # Test domain connectivity if DOMAIN is set
-          if [ -n "$DOMAIN" ]; then
-            echo "Testing domain connectivity for m.${DOMAIN}..."
-            if curl -s --connect-timeout 10 --max-time 30 "https://m.${DOMAIN}" > /dev/null 2>&1; then
-              echo "Domain is accessible, using domain URL"
-              MAUTIC_URL="https://m.${DOMAIN}"
-              USE_IP_FALLBACK=false
-            else
-              echo "Domain is not accessible yet, using IP address"
-              MAUTIC_URL="http://${IP}:${MAUTIC_PORT}"
-              USE_IP_FALLBACK=true
-            fi
-          else
-            echo "No domain configured, using IP address"
-            MAUTIC_URL="http://${IP}:${MAUTIC_PORT}"
-            USE_IP_FALLBACK=true
-          fi
+          # Always use IP address for Mautic connection
+          MAUTIC_URL="http://${IP}:${MAUTIC_PORT}"
 
           echo "Mautic URL: $MAUTIC_URL"
-          echo "Use IP Fallback: $USE_IP_FALLBACK"
           echo "MAUTIC_URL=$MAUTIC_URL" >> $GITHUB_ENV
           echo "MAUTIC_USER=$EMAIL_ADDRESS" >> $GITHUB_ENV
           echo "DROPLET_IP=$IP" >> $GITHUB_ENV
-          echo "USE_IP_FALLBACK=$USE_IP_FALLBACK" >> $GITHUB_ENV
         env:
-          DOMAIN: ${{ vars.DOMAIN }}
           EMAIL_ADDRESS: ${{ vars.EMAIL_ADDRESS }}
 
       - name: Setup Python environment
@@ -105,13 +87,6 @@ jobs:
           sed -i "s|MAUTIC_PASSWORD=.*|MAUTIC_PASSWORD=\"${{ secrets.MAUTIC_PASSWORD }}\"|" .mautic_env
           sed -i "s|MAUTIC_HOST=.*|MAUTIC_HOST=\"${{ env.DROPLET_IP }}\"|" .mautic_env
 
-          # Add IP fallback URL if not already present
-          if ! grep -q "MAUTIC_IP_FALLBACK_URL" .mautic_env; then
-            echo "MAUTIC_IP_FALLBACK_URL=\"http://${{ env.DROPLET_IP }}:8001\"" >> .mautic_env
-          else
-            sed -i "s|MAUTIC_IP_FALLBACK_URL=.*|MAUTIC_IP_FALLBACK_URL=\"http://${{ env.DROPLET_IP }}:8001\"|" .mautic_env
-          fi
-
           echo "Updated .mautic_env file:"
           cat .mautic_env
 
@@ -119,7 +94,6 @@ jobs:
         run: |
           echo "Creating Mautic form using URL: ${{ env.MAUTIC_URL }}"
           echo "Using user: ${{ env.MAUTIC_USER }}"
-          echo "IP Fallback available: ${{ env.USE_IP_FALLBACK }}"
           python create_mautic_form.py
 
       - name: Finalizing
