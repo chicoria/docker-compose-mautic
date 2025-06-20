@@ -64,10 +64,18 @@ jobs:
           source .mautic_env
           set +a
 
-          # Construct Mautic URL
+          # Test domain connectivity if DOMAIN is set
           if [ -n "$DOMAIN" ]; then
-            MAUTIC_URL="https://m.${DOMAIN}"
+            echo "Testing domain connectivity for m.${DOMAIN}..."
+            if curl -s --connect-timeout 10 --max-time 30 "https://m.${DOMAIN}" > /dev/null 2>&1; then
+              echo "Domain is accessible, using domain URL"
+              MAUTIC_URL="https://m.${DOMAIN}"
+            else
+              echo "Domain is not accessible yet, using IP address"
+              MAUTIC_URL="http://${IP}:${MAUTIC_PORT}"
+            fi
           else
+            echo "No domain configured, using IP address"
             MAUTIC_URL="http://${IP}:${MAUTIC_PORT}"
           fi
 
