@@ -41,35 +41,44 @@ if [[ "$DOMAIN" == *"DOMAIN_NAME"* ]]; then
 fi
 
 DROPLET_IP=$(curl -s http://icanhazip.com)
-MAUTIC_SUBDOMAIN="m.$DOMAIN"
-echo "## Checking if $MAUTIC_SUBDOMAIN points to this DO droplet..."
+
+# Extract base domain for DNS checks (e.g., if DOMAIN is m.superare.com.br, get superare.com.br)
+if [[ "$DOMAIN" == m.* ]]; then
+    BASE_DOMAIN=$(echo "$DOMAIN" | sed 's/^m\.//')
+    echo "## Domain $DOMAIN detected as subdomain of $BASE_DOMAIN"
+else
+    BASE_DOMAIN="$DOMAIN"
+    echo "## Using $DOMAIN as main domain"
+fi
+
+echo "## Checking if $DOMAIN points to this DO droplet..."
 
 # First check if the domain is using Cloudflare
-if dig +short NS $DOMAIN | grep -q "cloudflare"; then
+if dig +short NS $BASE_DOMAIN | grep -q "cloudflare"; then
     echo "## Domain is using Cloudflare DNS"
     
-    # Check if the subdomain is proxied through Cloudflare
-    if dig +short $MAUTIC_SUBDOMAIN | grep -q "cloudflare"; then
-        echo "## Subdomain is proxied through Cloudflare, skipping DNS propagation check"
+    # Check if the domain is proxied through Cloudflare
+    if dig +short $DOMAIN | grep -q "cloudflare"; then
+        echo "## Domain is proxied through Cloudflare, skipping DNS propagation check"
     else
         # Domain is using Cloudflare but not proxied, check the A record
-        SUBDOMAIN_IP=$(dig +short $MAUTIC_SUBDOMAIN)
-        if [ "$SUBDOMAIN_IP" != "$DROPLET_IP" ]; then
-            echo "## $MAUTIC_SUBDOMAIN does not point to this droplet IP ($DROPLET_IP). Please update your Cloudflare A record."
+        DOMAIN_IP=$(dig +short $DOMAIN)
+        if [ "$DOMAIN_IP" != "$DROPLET_IP" ]; then
+            echo "## $DOMAIN does not point to this droplet IP ($DROPLET_IP). Please update your Cloudflare A record."
             exit 1
         fi
     fi
 else
     # Not using Cloudflare, do standard DNS check
     echo "## Domain is not using Cloudflare, performing standard DNS check"
-    SUBDOMAIN_IP=$(dig +short $MAUTIC_SUBDOMAIN)
-    if [ "$SUBDOMAIN_IP" != "$DROPLET_IP" ]; then
-        echo "## $MAUTIC_SUBDOMAIN does not point to this droplet IP ($DROPLET_IP). Exiting..."
+    DOMAIN_IP=$(dig +short $DOMAIN)
+    if [ "$DOMAIN_IP" != "$DROPLET_IP" ]; then
+        echo "## $DOMAIN does not point to this droplet IP ($DROPLET_IP). Exiting..."
         exit 1
     fi
 fi
 
-echo "## $MAUTIC_SUBDOMAIN is available and points to this droplet. Nginx configuration..."
+echo "## $DOMAIN is available and points to this droplet. Nginx configuration..."
 
 SOURCE_PATH="/var/www/nginx-virtual-host-$DOMAIN"
 TARGET_PATH="/etc/nginx/sites-enabled/nginx-virtual-host-$DOMAIN"
@@ -102,7 +111,7 @@ echo "## Check if Mautic is installed"
 if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && docker compose exec -T mautic_web test -f /var/www/html/config/local.php; then
     # Replace the site_url value with the domain
     echo "## Updating site_url in Mautic configuration..."
-    docker compose exec -T mautic_web sed -i "s|'site_url' => '.*',|'site_url' => 'https://m.$DOMAIN',|g" /var/www/html/config/local.php
+    docker compose exec -T mautic_web sed -i "s|'site_url' => '.*',|'site_url' => 'https://$DOMAIN',|g" /var/www/html/config/local.php
 fi
 
 echo "## Script execution completed"
