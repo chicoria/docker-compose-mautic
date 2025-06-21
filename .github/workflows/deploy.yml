@@ -137,13 +137,22 @@ jobs:
             exit 0
           fi
 
-          # Get the zone ID for the domain
-          ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=${{ vars.DOMAIN }}" \
+          # Extract base domain for zone lookup (e.g., if DOMAIN is m.superare.com.br, get superare.com.br)
+          if [[ "${{ vars.DOMAIN }}" == m.* ]]; then
+            BASE_DOMAIN=$(echo "${{ vars.DOMAIN }}" | sed 's/^m\.//')
+            echo "## Domain ${{ vars.DOMAIN }} detected as subdomain of $BASE_DOMAIN"
+          else
+            BASE_DOMAIN="${{ vars.DOMAIN }}"
+            echo "## Using ${{ vars.DOMAIN }} as main domain"
+          fi
+
+          # Get the zone ID for the base domain
+          ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$BASE_DOMAIN" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" | jq -r '.result[0].id')
 
           if [ -z "$ZONE_ID" ] || [ "$ZONE_ID" = "null" ]; then
-            echo "Error: Could not find Cloudflare zone ID for domain ${{ vars.DOMAIN }}"
+            echo "Error: Could not find Cloudflare zone ID for domain $BASE_DOMAIN"
             exit 1
           fi
 
