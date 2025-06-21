@@ -41,34 +41,35 @@ if [[ "$DOMAIN" == *"DOMAIN_NAME"* ]]; then
 fi
 
 DROPLET_IP=$(curl -s http://icanhazip.com)
-echo "## Checking if $DOMAIN points to this DO droplet..."
+MAUTIC_SUBDOMAIN="m.$DOMAIN"
+echo "## Checking if $MAUTIC_SUBDOMAIN points to this DO droplet..."
 
 # First check if the domain is using Cloudflare
 if dig +short NS $DOMAIN | grep -q "cloudflare"; then
     echo "## Domain is using Cloudflare DNS"
     
-    # Check if the domain is proxied through Cloudflare
-    if dig +short $DOMAIN | grep -q "cloudflare"; then
-        echo "## Domain is proxied through Cloudflare, skipping DNS propagation check"
+    # Check if the subdomain is proxied through Cloudflare
+    if dig +short $MAUTIC_SUBDOMAIN | grep -q "cloudflare"; then
+        echo "## Subdomain is proxied through Cloudflare, skipping DNS propagation check"
     else
         # Domain is using Cloudflare but not proxied, check the A record
-        DOMAIN_IP=$(dig +short $DOMAIN)
-        if [ "$DOMAIN_IP" != "$DROPLET_IP" ]; then
-            echo "## $DOMAIN does not point to this droplet IP ($DROPLET_IP). Please update your Cloudflare A record."
+        SUBDOMAIN_IP=$(dig +short $MAUTIC_SUBDOMAIN)
+        if [ "$SUBDOMAIN_IP" != "$DROPLET_IP" ]; then
+            echo "## $MAUTIC_SUBDOMAIN does not point to this droplet IP ($DROPLET_IP). Please update your Cloudflare A record."
             exit 1
         fi
     fi
 else
     # Not using Cloudflare, do standard DNS check
     echo "## Domain is not using Cloudflare, performing standard DNS check"
-    DOMAIN_IP=$(dig +short $DOMAIN)
-    if [ "$DOMAIN_IP" != "$DROPLET_IP" ]; then
-        echo "## $DOMAIN does not point to this droplet IP ($DROPLET_IP). Exiting..."
+    SUBDOMAIN_IP=$(dig +short $MAUTIC_SUBDOMAIN)
+    if [ "$SUBDOMAIN_IP" != "$DROPLET_IP" ]; then
+        echo "## $MAUTIC_SUBDOMAIN does not point to this droplet IP ($DROPLET_IP). Exiting..."
         exit 1
     fi
 fi
 
-echo "## $DOMAIN is available and points to this droplet. Nginx configuration..."
+echo "## $MAUTIC_SUBDOMAIN is available and points to this droplet. Nginx configuration..."
 
 SOURCE_PATH="/var/www/nginx-virtual-host-$DOMAIN"
 TARGET_PATH="/etc/nginx/sites-enabled/nginx-virtual-host-$DOMAIN"

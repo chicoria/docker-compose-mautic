@@ -186,7 +186,7 @@ jobs:
             fi
           }
 
-          # Update both main domain and subdomain
+          # Update only the subdomain for Mautic
           update_dns_record "m.${{ vars.DOMAIN }}"
           echo "DNS records updated successfully"
 
