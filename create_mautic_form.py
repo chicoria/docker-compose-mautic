@@ -1,6 +1,7 @@
 import requests
 import json
 import os
+import sys
 from dotenv import load_dotenv
 
 # --- Load Environment Variables ---
@@ -9,21 +10,25 @@ load_dotenv('.mautic_env')
 
 # --- Configuration ---
 # Get Mautic instance details from environment variables
-MAUTIC_URL = os.getenv("MAUTIC_URL", "https://your-mautic-instance.com")
-MAUTIC_USER = os.getenv("MAUTIC_USER", "your_mautic_username")
-MAUTIC_PASSWORD = os.getenv("MAUTIC_PASSWORD", "your_mautic_password")
+MAUTIC_URL = os.getenv("MAUTIC_URL")
+MAUTIC_USER = os.getenv("MAUTIC_USER")
+MAUTIC_PASSWORD = os.getenv("MAUTIC_PASSWORD")
 
-# If MAUTIC_URL is not set, construct it from other variables
-if MAUTIC_URL == "https://your-mautic-instance.com":
-    # Try to construct URL from available variables
-    mautic_host = os.getenv("MAUTIC_HOST", "localhost")
-    mautic_port = os.getenv("MAUTIC_PORT", "8001")
-    mautic_protocol = os.getenv("MAUTIC_PROTOCOL", "http")
-    
-    if mautic_host != "localhost":
-        MAUTIC_URL = f"{mautic_protocol}://{mautic_host}"
-        if mautic_port and mautic_port != "80" and mautic_port != "443":
-            MAUTIC_URL += f":{mautic_port}"
+# Check if required environment variables are set
+if not MAUTIC_URL:
+    print("ERROR: MAUTIC_URL environment variable is not set")
+    print("Please set MAUTIC_URL in your .mautic_env file")
+    sys.exit(1)
+
+if not MAUTIC_USER:
+    print("ERROR: MAUTIC_USER environment variable is not set")
+    print("Please set MAUTIC_USER in your .mautic_env file")
+    sys.exit(1)
+
+if not MAUTIC_PASSWORD:
+    print("ERROR: MAUTIC_PASSWORD environment variable is not set")
+    print("Please set MAUTIC_PASSWORD in your .mautic_env file")
+    sys.exit(1)
 
 print(f"Using Mautic URL: {MAUTIC_URL}")
 print(f"Using Mautic User: {MAUTIC_USER}")
@@ -50,14 +55,14 @@ form_payload = {
             "validationMessage": "O campo Nome é obrigatório."
         },
         {
-            "label": "DDD",
+            "label": "Código do País",
             "type": "text",
-            "alias": "ddd",
+            "alias": "codigo_pais",
             "isRequired": True,
             "properties": {
-                "maxLength": 3
+                "maxLength": 4
             },
-            "validationMessage": "O campo DDD é obrigatório."
+            "validationMessage": "O código do país é obrigatório (ex: +55, +1, +44)."
         },
         {
             "label": "Celular",

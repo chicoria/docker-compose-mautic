@@ -64,8 +64,8 @@ jobs:
           source .mautic_env
           set +a
 
-          # Always use IP address for Mautic connection
-          MAUTIC_URL="http://${IP}:${MAUTIC_PORT}"
+          # Construct Mautic URL using domain with 'm.' prefix
+          MAUTIC_URL="https://m.${DOMAIN}"
 
           echo "Mautic URL: $MAUTIC_URL"
           echo "MAUTIC_URL=$MAUTIC_URL" >> $GITHUB_ENV
@@ -73,6 +73,7 @@ jobs:
           echo "DROPLET_IP=$IP" >> $GITHUB_ENV
         env:
           EMAIL_ADDRESS: ${{ vars.EMAIL_ADDRESS }}
+          DOMAIN: ${{ vars.DOMAIN }}
 
       - name: Setup Python environment
         run: |
@@ -85,7 +86,7 @@ jobs:
           sed -i "s|MAUTIC_URL=.*|MAUTIC_URL=\"${{ env.MAUTIC_URL }}\"|" .mautic_env
           sed -i "s|MAUTIC_USER=.*|MAUTIC_USER=\"${{ env.MAUTIC_USER }}\"|" .mautic_env
           sed -i "s|MAUTIC_PASSWORD=.*|MAUTIC_PASSWORD=\"${{ secrets.MAUTIC_PASSWORD }}\"|" .mautic_env
-          sed -i "s|MAUTIC_HOST=.*|MAUTIC_HOST=\"${{ env.DROPLET_IP }}\"|" .mautic_env
+          sed -i "s|MAUTIC_HOST=.*|MAUTIC_HOST=\"m.${{ vars.DOMAIN }}\"|" .mautic_env
 
           echo "Updated .mautic_env file:"
           cat .mautic_env
