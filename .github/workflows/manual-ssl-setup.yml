@@ -9,17 +9,21 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
       - name: Export DOMAIN to env
         run: echo "DOMAIN=${{ vars.DOMAIN }}" >> $GITHUB_ENV
+
       - name: Get VPS IP from DigitalOcean
         run: |
           echo "Waiting for droplet to be ready..."
@@ -36,23 +40,25 @@ jobs:
             fi
           done
           echo "ip=$IP" >> $GITHUB_ENV
-      - name: Ensure nginx HTTP config exists for $DOMAIN
+
+      - name: Ensure nginx HTTP config exists for ${{ env.DOMAIN }}
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@${{ env.ip }} '
-            CONFIG_FILE="/etc/nginx/sites-available/nginx-virtual-host-$DOMAIN"
-            if [ ! -f "$CONFIG_FILE" ]; then
-              echo "Creating basic HTTP server block for $DOMAIN..."
-              echo "server {\n    listen 80;\n    server_name $DOMAIN;\n    location / {\n        proxy_pass http://localhost:8001;\n        proxy_set_header Host \$host;\n        proxy_set_header X-Real-IP \$remote_addr;\n        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto \$scheme;\n    }\n    error_log /var/log/nginx/${DOMAIN}_error.log;\n    access_log /var/log/nginx/${DOMAIN}_access.log;\n}" > $CONFIG_FILE
-              ln -sf $CONFIG_FILE /etc/nginx/sites-enabled/nginx-virtual-host-$DOMAIN
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@${{ env.ip }} "
+            CONFIG_FILE='/etc/nginx/sites-available/nginx-virtual-host-${{ env.DOMAIN }}'
+            if [ ! -f \"$CONFIG_FILE\" ]; then
+              echo 'Creating basic HTTP server block for ${{ env.DOMAIN }}...'
+              echo 'server {\n    listen 80;\n    server_name ${{ env.DOMAIN }};\n    location / {\n        proxy_pass http://localhost:8001;\n        proxy_set_header Host \\$host;\n        proxy_set_header X-Real-IP \\$remote_addr;\n        proxy_set_header X-Forwarded-For \\$proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto \\$scheme;\n    }\n    error_log /var/log/nginx/${{ env.DOMAIN }}_error.log;\n    access_log /var/log/nginx/${{ env.DOMAIN }}_access.log;\n}' > \"$CONFIG_FILE\"
+              ln -sf \"$CONFIG_FILE\" /etc/nginx/sites-enabled/nginx-virtual-host-${{ env.DOMAIN }}
               nginx -t && systemctl reload nginx
             else
-              echo "Nginx config for $DOMAIN already exists."
+              echo 'Nginx config for ${{ env.DOMAIN }} already exists.'
             fi
-          '
+          "
+
       - name: Install and run Certbot on server
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@${{ env.ip }} '
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@${{ env.ip }} "
             sudo apt-get update
             sudo apt-get install -y certbot python3-certbot-nginx
-            sudo certbot --nginx -n --agree-tos --redirect --email "${{ vars.EMAIL_ADDRESS }}" -d $DOMAIN
-          '
+            sudo certbot --nginx -n --agree-tos --redirect --email '${{ vars.EMAIL_ADDRESS }}' -d ${{ env.DOMAIN }}
+          "
