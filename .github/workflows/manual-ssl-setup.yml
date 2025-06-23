@@ -14,11 +14,16 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-      - name: Get VPS IP
-        run: |
-          echo "ip=${{ vars.DROPLET_IP }}" >> $GITHUB_ENV
       - name: Export DOMAIN to env
         run: echo "DOMAIN=${{ vars.DOMAIN }}" >> $GITHUB_ENV
+      - name: Get VPS IP from DNS
+        run: |
+          IP=$(dig +short $DOMAIN | tail -n1)
+          if [ -z "$IP" ]; then
+            echo "Failed to resolve IP for $DOMAIN" >&2
+            exit 1
+          fi
+          echo "ip=$IP" >> $GITHUB_ENV
       - name: Ensure nginx HTTP config exists for $DOMAIN
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@${{ env.ip }} '
