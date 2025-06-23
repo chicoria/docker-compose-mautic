@@ -41,20 +41,6 @@ jobs:
           done
           echo "ip=$IP" >> $GITHUB_ENV
 
-      - name: Ensure nginx HTTP config exists for ${{ env.DOMAIN }}
-        run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@${{ env.ip }} "
-            CONFIG_FILE='/etc/nginx/sites-available/nginx-virtual-host-${{ env.DOMAIN }}'
-            if [ ! -f \"$CONFIG_FILE\" ]; then
-              echo 'Creating basic HTTP server block for ${{ env.DOMAIN }}...'
-              echo 'server {\n    listen 80;\n    server_name ${{ env.DOMAIN }};\n    location / {\n        proxy_pass http://localhost:8001;\n        proxy_set_header Host \\$host;\n        proxy_set_header X-Real-IP \\$remote_addr;\n        proxy_set_header X-Forwarded-For \\$proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto \\$scheme;\n    }\n    error_log /var/log/nginx/${{ env.DOMAIN }}_error.log;\n    access_log /var/log/nginx/${{ env.DOMAIN }}_access.log;\n}' > \"$CONFIG_FILE\"
-              ln -sf \"$CONFIG_FILE\" /etc/nginx/sites-enabled/nginx-virtual-host-${{ env.DOMAIN }}
-              nginx -t && systemctl reload nginx
-            else
-              echo 'Nginx config for ${{ env.DOMAIN }} already exists.'
-            fi
-          "
-
       - name: Install and run Certbot on server
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@${{ env.ip }} "
