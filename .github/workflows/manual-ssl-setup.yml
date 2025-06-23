@@ -9,11 +9,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+      - name: Get VPS IP
+        run: |
+          echo "ip=${{ vars.DROPLET_IP }}" >> $GITHUB_ENV
       - name: Export DOMAIN to env
         run: echo "DOMAIN=${{ vars.DOMAIN }}" >> $GITHUB_ENV
       - name: Ensure nginx HTTP config exists for $DOMAIN
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@${{ secrets.DROPLET_IP }} '
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@${{ env.ip }} '
             CONFIG_FILE="/etc/nginx/sites-available/nginx-virtual-host-$DOMAIN"
             if [ ! -f "$CONFIG_FILE" ]; then
               echo "Creating basic HTTP server block for $DOMAIN..."
@@ -26,7 +34,7 @@ jobs:
           '
       - name: Install and run Certbot on server
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@${{ secrets.DROPLET_IP }} '
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@${{ env.ip }} '
             sudo apt-get update
             sudo apt-get install -y certbot python3-certbot-nginx
             sudo certbot --nginx -n --agree-tos --redirect --email "${{ vars.EMAIL_ADDRESS }}" -d $DOMAIN
