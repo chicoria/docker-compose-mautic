@@ -65,7 +65,13 @@ jobs:
           set +a
 
           # Construct Mautic URL using domain with 'm.' prefix
-          MAUTIC_URL="https://m.${DOMAIN}"
+          if [[ "$DOMAIN" == m.* ]]; then
+            # Domain already has 'm.' prefix
+            MAUTIC_URL="https://${DOMAIN}"
+          else
+            # Add 'm.' prefix to domain
+            MAUTIC_URL="https://m.${DOMAIN}"
+          fi
 
           echo "Mautic URL: $MAUTIC_URL"
           echo "MAUTIC_URL=$MAUTIC_URL" >> $GITHUB_ENV
@@ -86,7 +92,14 @@ jobs:
           sed -i "s|MAUTIC_URL=.*|MAUTIC_URL=\"${{ env.MAUTIC_URL }}\"|" .mautic_env
           sed -i "s|MAUTIC_USER=.*|MAUTIC_USER=\"${{ env.MAUTIC_USER }}\"|" .mautic_env
           sed -i "s|MAUTIC_PASSWORD=.*|MAUTIC_PASSWORD=\"${{ secrets.MAUTIC_PASSWORD }}\"|" .mautic_env
-          sed -i "s|MAUTIC_HOST=.*|MAUTIC_HOST=\"m.${{ vars.DOMAIN }}\"|" .mautic_env
+          
+          # Set MAUTIC_HOST based on whether DOMAIN already has 'm.' prefix
+          if [[ "${{ vars.DOMAIN }}" == m.* ]]; then
+            MAUTIC_HOST="${{ vars.DOMAIN }}"
+          else
+            MAUTIC_HOST="m.${{ vars.DOMAIN }}"
+          fi
+          sed -i "s|MAUTIC_HOST=.*|MAUTIC_HOST=\"$MAUTIC_HOST\"|" .mautic_env
 
           echo "Updated .mautic_env file:"
           cat .mautic_env
@@ -96,6 +109,10 @@ jobs:
           echo "Creating Mautic form using URL: ${{ env.MAUTIC_URL }}"
           echo "Using user: ${{ env.MAUTIC_USER }}"
           python create_mautic_form.py
+        env:
+          MAUTIC_URL: ${{ env.MAUTIC_URL }}
+          MAUTIC_USER: ${{ env.MAUTIC_USER }}
+          MAUTIC_PASSWORD: ${{ secrets.MAUTIC_PASSWORD }}
 
       - name: Finalizing
         run: |
