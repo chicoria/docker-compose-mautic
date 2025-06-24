@@ -1,0 +1,55 @@
+# Security: Block access to sensitive files
+
+<Files ~ "^\.">
+Order allow,deny
+Deny from all
+</Files>
+
+# Block access to environment files
+
+<Files ~ "\.(env|env\.example|env\.local|env\.production)$">
+Order allow,deny
+Deny from all
+</Files>
+
+# Block access to composer files
+
+<Files ~ "composer\.(json|lock)$">
+Order allow,deny
+Deny from all
+</Files>
+
+# Block access to git files
+
+<Files ~ "\.git">
+Order allow,deny
+Deny from all
+</Files>
+
+# Block access to README and documentation files
+
+<Files ~ "(README|CHANGELOG|LICENSE|\.md)$">
+Order allow,deny
+Deny from all
+</Files>
+
+# Block access to backup and temporary files
+
+<Files ~ "\.(bak|backup|tmp|temp|swp|swo)$">
+Order allow,deny
+Deny from all
+</Files>
+
+# Block access to log files
+
+<Files ~ "\.(log|txt)$">
+Order allow,deny
+Deny from all
+</Files>
+
+# Block access to configuration files
+
+<Files ~ "\.(ini|conf|config)$">
+Order allow,deny
+Deny from all
+</Files>

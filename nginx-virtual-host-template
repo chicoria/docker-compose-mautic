@@ -2,6 +2,47 @@ server {
     listen 80;
     server_name m.DOMAIN_NAME;
 
+    # Security: Block access to sensitive files
+    location ~ /\.env(\.example|\.local|\.production)?$ {
+        deny all;
+        return 404;
+    }
+
+    # Block access to git files
+    location ~ /\.git {
+        deny all;
+        return 404;
+    }
+
+    # Block access to composer files
+    location ~ /composer\.(json|lock)$ {
+        deny all;
+        return 404;
+    }
+
+    # Block access to README and documentation files
+    location ~ /(README|CHANGELOG|LICENSE|\.md)$ {
+        deny all;
+        return 404;
+    }
+
+    # Block access to backup and temporary files
+    location ~ /\.(bak|backup|tmp|temp|swp|swo)$ {
+        deny all;
+        return 404;
+    }
+
+    # Block access to log files
+    location ~ /\.(log|txt)$ {
+        deny all;
+        return 404;
+    }
+
+    # Block access to .htaccess files
+    location ~ /\.ht {
+        deny all;
+    }
+
     location / {
         # CORS headers for cross-origin requests
         add_header 'Access-Control-Allow-Origin' 'https://DOMAIN_NAME' always;
@@ -25,10 +66,6 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location ~ /\.ht {
-        deny all;
     }
 
     error_log /var/log/nginx/DOMAIN_NAME_error.log;

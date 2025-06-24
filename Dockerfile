@@ -19,3 +19,6 @@ FROM mautic/mautic:${MAUTIC_VERSION}
 
 # Copy the built assets and the Mautic installation from the build stage:
 COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
+
+# Copy security .htaccess file
+COPY .htaccess /var/www/html/.htaccess
