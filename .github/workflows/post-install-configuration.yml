@@ -28,6 +28,9 @@ jobs:
           EMAIL_ADDRESS: ${{ vars.EMAIL_ADDRESS }}
           DOMAIN: ${{ vars.DOMAIN }}
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          MAUTIC_MAILER_FROM_NAME: ${{ vars.MAUTIC_MAILER_FROM_NAME }}
+          MAUTIC_MAILER_FROM_EMAIL: ${{ vars.MAUTIC_MAILER_FROM_EMAIL }}
+          MOBILE_NUMBER: ${{ vars.MOBILE_NUMBER }}
         run: |
           error_missing_secrets=()
           check_secret() {
@@ -40,11 +43,51 @@ jobs:
           check_secret "MAUTIC_PASSWORD"
           check_secret "EMAIL_ADDRESS"
           check_secret "SENDGRID_API_KEY"
+          check_secret "MAUTIC_MAILER_FROM_NAME"
+          check_secret "MAUTIC_MAILER_FROM_EMAIL"
+          check_secret "MOBILE_NUMBER"
+          check_secret "DOMAIN"
 
           if [ ${#error_missing_secrets[@]} -ne 0 ]; then
             echo "Error: Missing required secrets/variables: ${error_missing_secrets[*]}"
             exit 1
           fi
+
+      - name: Generate .mautic_env with all GitHub Actions variables and secrets
+        env:
+          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          MAUTIC_PASSWORD: ${{ secrets.MAUTIC_PASSWORD }}
+          EMAIL_ADDRESS: ${{ vars.EMAIL_ADDRESS }}
+          DOMAIN: ${{ vars.DOMAIN }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          MAUTIC_MAILER_FROM_NAME: ${{ vars.MAUTIC_MAILER_FROM_NAME }}
+          MAUTIC_MAILER_FROM_EMAIL: ${{ vars.MAUTIC_MAILER_FROM_EMAIL }}
+          MOBILE_NUMBER: ${{ vars.MOBILE_NUMBER }}
+        run: |
+          cat > .mautic_env <<EOF
+          MAUTIC_DB_HOST="${MYSQL_HOST}"
+          MAUTIC_DB_PORT="${MYSQL_PORT}"
+          MAUTIC_DB_DATABASE="${MYSQL_DATABASE}"
+          MAUTIC_DB_USER="${MYSQL_USER}"
+          MAUTIC_DB_PASSWORD="${MYSQL_PASSWORD}"
+          MAUTIC_PORT="8001"
+          MAUTIC_MESSENGER_DSN_EMAIL="doctrine://default"
+          MAUTIC_MESSENGER_DSN_HIT="doctrine://default"
+          MAUTIC_MAILER_FROM_NAME="$MAUTIC_MAILER_FROM_NAME"
+          MAUTIC_MAILER_FROM_EMAIL="$MAUTIC_MAILER_FROM_EMAIL"
+          MAUTIC_MAILER_TRANSPORT="smtp"
+          MAUTIC_MAILER_HOST="smtp.sendgrid.net"
+          MAUTIC_MAILER_PORT="587"
+          MAUTIC_MAILER_USER="apikey"
+          MAUTIC_MAILER_PASSWORD="$SENDGRID_API_KEY"
+          MAUTIC_MAILER_ENCRYPTION="tls"
+          MAUTIC_MAILER_AUTH_MODE="login"
+          EMAIL_ADDRESS="$EMAIL_ADDRESS"
+          DOMAIN="$DOMAIN"
+          MOBILE_NUMBER="$MOBILE_NUMBER"
+          DIGITALOCEAN_ACCESS_TOKEN="$DIGITALOCEAN_ACCESS_TOKEN"
+          MAUTIC_PASSWORD="$MAUTIC_PASSWORD"
+          EOF
 
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
@@ -116,16 +159,4 @@ jobs:
           echo "SendGrid email configuration has been set up"
           echo "Test email has been sent to: ${{ vars.EMAIL_ADDRESS }}"
           echo "Check your email inbox for the SendGrid test email"
-          echo "Mautic is now ready for email marketing campaigns"
-
-      - name: Generate .mautic_env
-        env:
-          MAUTIC_MAILER_FROM_NAME: ${{ vars.MAUTIC_MAILER_FROM_NAME }}
-          MAUTIC_MAILER_FROM_EMAIL: ${{ vars.MAUTIC_MAILER_FROM_EMAIL }}
-          MAUTIC_MAILER_PASSWORD: ${{ secrets.SENDGRID_API_KEY }}
-        run: |
-          cat > docker-compose-mautic/.mautic_env <<EOF
-          MAUTIC_MAILER_FROM_NAME="$MAUTIC_MAILER_FROM_NAME"
-          MAUTIC_MAILER_FROM_EMAIL="$MAUTIC_MAILER_FROM_EMAIL"
-          MAUTIC_MAILER_PASSWORD="$MAUTIC_MAILER_PASSWORD"
-          EOF 
+          echo "Mautic is now ready for email marketing campaigns" 
