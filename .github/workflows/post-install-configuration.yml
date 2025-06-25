@@ -116,4 +116,16 @@ jobs:
           echo "SendGrid email configuration has been set up"
           echo "Test email has been sent to: ${{ vars.EMAIL_ADDRESS }}"
           echo "Check your email inbox for the SendGrid test email"
-          echo "Mautic is now ready for email marketing campaigns" 
+          echo "Mautic is now ready for email marketing campaigns"
+
+      - name: Generate .mautic_env
+        env:
+          MAUTIC_MAILER_FROM_NAME: ${{ vars.MAUTIC_MAILER_FROM_NAME }}
+          MAUTIC_MAILER_FROM_EMAIL: ${{ vars.MAUTIC_MAILER_FROM_EMAIL }}
+          MAUTIC_MAILER_PASSWORD: ${{ secrets.SENDGRID_API_KEY }}
+        run: |
+          cat > docker-compose-mautic/.mautic_env <<EOF
+          MAUTIC_MAILER_FROM_NAME="$MAUTIC_MAILER_FROM_NAME"
+          MAUTIC_MAILER_FROM_EMAIL="$MAUTIC_MAILER_FROM_EMAIL"
+          MAUTIC_MAILER_PASSWORD="$MAUTIC_MAILER_PASSWORD"
+          EOF 
