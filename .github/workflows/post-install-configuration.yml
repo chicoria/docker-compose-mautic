@@ -101,7 +101,7 @@ jobs:
           echo "Configuring SendGrid email settings..."
           echo "Using Mautic URL: ${{ env.MAUTIC_URL }}"
           echo "Using user: ${{ env.MAUTIC_USER }}"
-          python configure_sendgrid_email.py
+          python post-install-configuration.py
         env:
           MAUTIC_URL: ${{ env.MAUTIC_URL }}
           MAUTIC_USER: ${{ env.MAUTIC_USER }}

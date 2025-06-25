@@ -98,7 +98,7 @@ jobs:
         run: |
           echo "Creating Mautic form using URL: ${{ env.MAUTIC_URL }}"
           echo "Using user: ${{ env.MAUTIC_USER }}"
-          python create_mautic_form.py
+          python create-pre-configured-data.py
         env:
           MAUTIC_URL: ${{ env.MAUTIC_URL }}
           MAUTIC_USER: ${{ env.MAUTIC_USER }}
