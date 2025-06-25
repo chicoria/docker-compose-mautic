@@ -29,8 +29,8 @@ EMAIL_CONFIG = {
     "mailer_auth_mode": os.getenv("MAUTIC_MAILER_AUTH_MODE"),
 }
 
-TEST_EMAIL_RECIPIENT = os.getenv("EMAIL_ADDRESS", os.getenv("TEST_EMAIL_RECIPIENT", "test@example.com"))
-TEST_MOBILE_NUMBER = os.getenv("MOBILE_NUMBER", "+5511999999999")
+TEST_EMAIL_RECIPIENT = os.getenv("EMAIL_ADDRESS", "chicoria@gmail.com")
+TEST_MOBILE_NUMBER = os.getenv("MOBILE_NUMBER", "+351915787088")
 
 def make_api_request(endpoint, method="GET", data=None):
     url = f"{MAUTIC_URL}/api/{endpoint}"

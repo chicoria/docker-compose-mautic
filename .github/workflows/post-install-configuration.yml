@@ -139,12 +139,17 @@ jobs:
           echo "Updated .mautic_env file:"
           cat .mautic_env
 
-      - name: Configure SendGrid email settings
+      - name: Restart Mautic container to apply new mail settings
+        run: |
+          docker-compose down
+          docker-compose up -d          
+
+      - name: Testing the SendGrid email settings
         run: |
           echo "Configuring SendGrid email settings..."
           echo "Using Mautic URL: ${{ env.MAUTIC_URL }}"
           echo "Using user: ${{ env.MAUTIC_USER }}"
-          python post-install-configuration.py
+          python post-install-configuration-email.py
         env:
           MAUTIC_URL: ${{ env.MAUTIC_URL }}
           MAUTIC_USER: ${{ env.MAUTIC_USER }}
