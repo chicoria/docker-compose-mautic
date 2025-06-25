@@ -148,6 +148,11 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
     echo "## Clearing Mautic cache..."
     docker compose exec -T mautic_web rm -rf /var/www/html/var/cache/*
     echo "## Mautic API enabled successfully"
+    
+    # Restart containers to apply configuration changes
+    echo "## Restarting containers to apply configuration changes..."
+    docker compose restart mautic_web
+    echo "## Containers restarted successfully"
 fi
 
 echo "## Script execution completed"
