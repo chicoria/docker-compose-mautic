@@ -126,6 +126,24 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
         docker compose exec -T mautic_web sed -i "s/);$/'api' => [\n    'api_enabled' => true,\n    'basic_auth_enabled' => true,\n],\n);/" /var/www/html/config/local.php
     fi
     
+    # Configure Mautic Email Settings
+    echo "## Configuring Mautic Email Settings..."
+    if docker compose exec -T mautic_web grep -q "'mailer'" /var/www/html/config/local.php; then
+        # Update existing mailer block
+        echo "## Updating existing mailer configuration..."
+        docker compose exec -T mautic_web sed -i "s/'transport' => '.*'/'transport' => '${MAUTIC_MAILER_TRANSPORT}'/g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s/'host' => '.*'/'host' => '${MAUTIC_MAILER_HOST}'/g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s/'port' => '.*'/'port' => '${MAUTIC_MAILER_PORT}'/g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s/'encryption' => '.*'/'encryption' => '${MAUTIC_MAILER_ENCRYPTION}'/g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s/'user' => '.*'/'user' => '${MAUTIC_MAILER_USER}'/g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s/'password' => '.*'/'password' => '${MAUTIC_MAILER_PASSWORD}'/g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s/'auth_mode' => '.*'/'auth_mode' => '${MAUTIC_MAILER_AUTH_MODE}'/g" /var/www/html/config/local.php
+    else
+        # Insert new mailer block before the closing );
+        echo "## Adding new mailer configuration..."
+        docker compose exec -T mautic_web sed -i "s/);$/'mailer' => [\n    'transport' => '${MAUTIC_MAILER_TRANSPORT}',\n    'host' => '${MAUTIC_MAILER_HOST}',\n    'port' => '${MAUTIC_MAILER_PORT}',\n    'encryption' => '${MAUTIC_MAILER_ENCRYPTION}',\n    'user' => '${MAUTIC_MAILER_USER}',\n    'password' => '${MAUTIC_MAILER_PASSWORD}',\n    'auth_mode' => '${MAUTIC_MAILER_AUTH_MODE}',\n],\n);/" /var/www/html/config/local.php
+    fi
+    
     # Clear Mautic cache
     echo "## Clearing Mautic cache..."
     docker compose exec -T mautic_web rm -rf /var/www/html/var/cache/*
