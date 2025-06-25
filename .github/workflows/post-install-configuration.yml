@@ -139,6 +139,12 @@ jobs:
           echo "Updated .mautic_env file:"
           cat .mautic_env
 
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin
+          docker compose version           
+
       - name: Restart Mautic container to apply new mail settings
         run: |
           docker-compose down
@@ -164,4 +170,5 @@ jobs:
           echo "SendGrid email configuration has been set up"
           echo "Test email has been sent to: ${{ vars.EMAIL_ADDRESS }}"
           echo "Check your email inbox for the SendGrid test email"
-          echo "Mautic is now ready for email marketing campaigns" 
+          echo "Mautic is now ready for email marketing campaigns"
+
