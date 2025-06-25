@@ -16,28 +16,25 @@ MAUTIC_URL = os.getenv("MAUTIC_URL")
 MAUTIC_USER = os.getenv("MAUTIC_USER")
 MAUTIC_PASSWORD = os.getenv("MAUTIC_PASSWORD")
 
-# SendGrid Configuration - Update these values
-SENDGRID_CONFIG = {
-    "mailer_from_name": "Método Superare",
-    "mailer_from_email": "noreply@superare.com.br",
-    "mailer_transport": "smtp",
-    "mailer_host": "smtp.sendgrid.net",
-    "mailer_port": "587",
-    "mailer_user": "apikey",  # SendGrid always uses "apikey" as username
-    "mailer_password": os.getenv("SENDGRID_API_KEY", "YOUR_SENDGRID_API_KEY"),  # Get from GitHub Actions secrets
-    "mailer_encryption": "tls",
-    "mailer_auth_mode": "login"
+# Email config from environment
+EMAIL_CONFIG = {
+    "mailer_from_name": os.getenv("MAUTIC_MAILER_FROM_NAME"),
+    "mailer_from_email": os.getenv("MAUTIC_MAILER_FROM_EMAIL"),
+    "mailer_transport": os.getenv("MAUTIC_MAILER_TRANSPORT"),
+    "mailer_host": os.getenv("MAUTIC_MAILER_HOST"),
+    "mailer_port": os.getenv("MAUTIC_MAILER_PORT"),
+    "mailer_user": os.getenv("MAUTIC_MAILER_USER"),
+    "mailer_password": os.getenv("MAUTIC_MAILER_PASSWORD"),
+    "mailer_encryption": os.getenv("MAUTIC_MAILER_ENCRYPTION"),
+    "mailer_auth_mode": os.getenv("MAUTIC_MAILER_AUTH_MODE"),
 }
 
-# Test email configuration
-TEST_EMAIL_RECIPIENT = os.getenv("EMAIL_ADDRESS", os.getenv("TEST_EMAIL_RECIPIENT", "test@example.com"))  # Get from GitHub Actions EMAIL_ADDRESS or fallback
-TEST_MOBILE_NUMBER = os.getenv("MOBILE_NUMBER", "+5511999999999")  # Get from GitHub Actions MOBILE_NUMBER or fallback
+TEST_EMAIL_RECIPIENT = os.getenv("EMAIL_ADDRESS", os.getenv("TEST_EMAIL_RECIPIENT", "test@example.com"))
+TEST_MOBILE_NUMBER = os.getenv("MOBILE_NUMBER", "+5511999999999")
 
 def make_api_request(endpoint, method="GET", data=None):
-    """Make API request with proper error handling"""
     url = f"{MAUTIC_URL}/api/{endpoint}"
     auth = (str(MAUTIC_USER), str(MAUTIC_PASSWORD))
-    
     try:
         if method == "GET":
             response = requests.get(url, auth=auth, timeout=30)
@@ -45,7 +42,6 @@ def make_api_request(endpoint, method="GET", data=None):
             response = requests.post(url, json=data, auth=auth, timeout=30)
         elif method == "PUT":
             response = requests.put(url, json=data, auth=auth, timeout=30)
-        
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -54,37 +50,8 @@ def make_api_request(endpoint, method="GET", data=None):
             print(f"Response: {e.response.text}")
         return None
 
-def configure_sendgrid_via_api():
-    """Configure SendGrid email settings via Mautic API"""
-    print("=== Configuring SendGrid Email Settings via API ===")
-    
-    # Get current configuration
-    config_result = make_api_request("config")
-    
-    if config_result:
-        print("✅ Current configuration retrieved")
-        
-        # Update email settings
-        email_settings = {
-            "config": SENDGRID_CONFIG
-        }
-        
-        update_result = make_api_request("config/edit", "PUT", email_settings)
-        
-        if update_result:
-            print("✅ SendGrid email settings updated via API")
-            return True
-        else:
-            print("❌ Failed to update via API")
-            return False
-    else:
-        print("❌ Failed to retrieve current configuration")
-        return False
-
-def test_sendgrid_configuration():
-    """Test the SendGrid email configuration"""
-    print("\n=== Testing SendGrid Email Configuration ===")
-    
+def send_test_email():
+    print("\n=== Sending Test Email via Mautic API ===")
     # Create a test contact first
     test_contact_data = {
         "firstname": "Adilson",
@@ -92,17 +59,13 @@ def test_sendgrid_configuration():
         "email": TEST_EMAIL_RECIPIENT,
         "mobile": TEST_MOBILE_NUMBER
     }
-    
     print("Creating test contact...")
     contact_result = make_api_request("contacts/new", "POST", test_contact_data)
-    
     if not contact_result:
         print("❌ Failed to create test contact")
         return False
-    
     contact_id = contact_result.get('contact', {}).get('id')
     print(f"✅ Test contact created (ID: {contact_id})")
-    
     # Create a test email
     test_email_data = {
         "name": "Test SendGrid Configuration",
@@ -123,26 +86,20 @@ def test_sendgrid_configuration():
         """,
         "isPublished": True
     }
-    
     print("Creating test email...")
     test_email_result = make_api_request("emails/new", "POST", test_email_data)
-    
     if not test_email_result:
         print("❌ Failed to create test email")
         return False
-    
     test_email_id = test_email_result.get('email', {}).get('id')
     print(f"✅ Test email created (ID: {test_email_id})")
-    
     # Send the test email to the test contact
     send_email_data = {
         "email": test_email_id,
         "contact": contact_id
     }
-    
     print("Sending test email to contact...")
     send_result = make_api_request("emails/send", "POST", send_email_data)
-    
     if send_result:
         print("✅ Test email sent successfully!")
         print(f"📧 Email sent to: {TEST_EMAIL_RECIPIENT}")
@@ -152,79 +109,30 @@ def test_sendgrid_configuration():
         print("❌ Failed to send test email")
         print("This might indicate a SendGrid configuration issue")
         return False
-    
     return True
 
-def get_sendgrid_setup_instructions():
-    """Provide SendGrid setup instructions"""
-    print("\n=== SendGrid Setup Instructions ===")
-    print("📋 To get your SendGrid API key:")
-    print("1. Go to https://sendgrid.com and create an account")
-    print("2. Navigate to Settings → API Keys")
-    print("3. Create a new API key with 'Mail Send' permissions")
-    print("4. Copy the API key (it starts with 'SG.')")
-    print("5. Add it to GitHub Actions secrets as 'SENDGRID_API_KEY")
-    
-    print("\n🔧 SendGrid SMTP Settings:")
-    print("Host: smtp.sendgrid.net")
-    print("Port: 587")
-    print("Encryption: TLS")
-    print("Username: apikey")
-    print("Password: From GitHub Actions secrets (SENDGRID_API_KEY)")
-    
-    print("\n📊 SendGrid Free Tier:")
-    print("- 100 emails/day")
-    print("- 40,000 emails/month")
-    print("- Professional deliverability")
-    print("- Email analytics and tracking")
-    
-    print("\n🔐 GitHub Actions Setup:")
-    print("1. Go to your repository → Settings → Secrets and variables → Actions")
-    print("2. Add new repository secret: SENDGRID_API_KEY")
-    print("3. Paste your SendGrid API key as the value")
-    print("4. The script will automatically use this secret")
+def print_email_config():
+    print("\n📧 Current Email Configuration from Environment:")
+    for key, value in EMAIL_CONFIG.items():
+        if value is not None and "password" in key.lower():
+            print(f"  {key}: {'*' * len(value)}")
+        else:
+            print(f"  {key}: {value}")
 
 def main():
-    """Main function"""
     if not all([MAUTIC_URL, MAUTIC_USER, MAUTIC_PASSWORD]):
         print("ERROR: Missing required environment variables")
         print("Please set MAUTIC_URL, MAUTIC_USER, and MAUTIC_PASSWORD")
         sys.exit(1)
-    
-    print(f"Configuring SendGrid for Mautic at: {MAUTIC_URL}")
-    print(f"Using user: {MAUTIC_USER}")
-    
-    # Show SendGrid configuration
-    print("\n📧 SendGrid Configuration:")
-    for key, value in SENDGRID_CONFIG.items():
-        if "password" in key.lower():
-            print(f"  {key}: {'*' * len(value)}")
-        else:
-            print(f"  {key}: {value}")
-    
-    # Provide setup instructions
-    get_sendgrid_setup_instructions()
-    
-    # Remove prompt: always proceed in CI/CD
-    print("\n⚠️  IMPORTANT: Make sure SENDGRID_API_KEY is set in GitHub Actions secrets!")
-    print("The script will automatically use the API key from secrets.")
-    # Always proceed
-    # Configure via API
-    if configure_sendgrid_via_api():
-        print("\n✅ SendGrid configuration completed via API!")
-        
-        # Test configuration
-        test_sendgrid_configuration()
-        
-        print("\n🎯 Next Steps:")
-        print("1. Update SENDGRID_CONFIG with your real API key")
-        print("2. Run this script again to apply real settings")
-        print("3. Test email sending with a real contact")
-        print("4. Monitor SendGrid dashboard for delivery status")
-    else:
-        print("\n❌ SendGrid configuration failed!")
-        print("Please check your Mautic API access and try again.")
-        sys.exit(1)
+    print(f"Using Mautic URL: {MAUTIC_URL}")
+    print(f"Using Mautic User: {MAUTIC_USER}")
+    print_email_config()
+    send_test_email()
+    print("\n🎯 Next Steps:")
+    print("1. If you did not receive the test email, check your SendGrid and Mautic logs.")
+    print("2. Make sure your .mautic_env and docker-compose.yml have the correct email settings.")
+    print("3. Restart your Mautic containers after changing environment variables.")
+    print("4. For further troubleshooting, check the Mautic UI email settings and logs.")
 
 if __name__ == "__main__":
     main() 
