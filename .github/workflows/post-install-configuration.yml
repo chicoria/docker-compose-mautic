@@ -1,4 +1,4 @@
-name: Post-Installation Configurations
+name: Post-Installation Configuration
 
 # This workflow is triggered manually from the Actions tab on your GitHub repository.
 on:
@@ -14,7 +14,7 @@ on:
 
 jobs:
   configure:
-    name: Run Post-Installation Steps for ${{ github.event.inputs.environment }}
+    name: Run Post-Installation Configuration for ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
 
     steps:
@@ -27,6 +27,7 @@ jobs:
           MAUTIC_PASSWORD: ${{ secrets.MAUTIC_PASSWORD }}
           EMAIL_ADDRESS: ${{ vars.EMAIL_ADDRESS }}
           DOMAIN: ${{ vars.DOMAIN }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
         run: |
           error_missing_secrets=()
           check_secret() {
@@ -38,6 +39,7 @@ jobs:
           check_secret "DIGITALOCEAN_ACCESS_TOKEN"
           check_secret "MAUTIC_PASSWORD"
           check_secret "EMAIL_ADDRESS"
+          check_secret "SENDGRID_API_KEY"
 
           if [ ${#error_missing_secrets[@]} -ne 0 ]; then
             echo "Error: Missing required secrets/variables: ${error_missing_secrets[*]}"
@@ -94,24 +96,24 @@ jobs:
           echo "Updated .mautic_env file:"
           cat .mautic_env
 
-      - name: Run Mautic form creation script
+      - name: Configure SendGrid email settings
         run: |
-          echo "Creating Mautic form using URL: ${{ env.MAUTIC_URL }}"
+          echo "Configuring SendGrid email settings..."
+          echo "Using Mautic URL: ${{ env.MAUTIC_URL }}"
           echo "Using user: ${{ env.MAUTIC_USER }}"
-          python create_mautic_form.py
+          python configure_sendgrid_email.py
         env:
           MAUTIC_URL: ${{ env.MAUTIC_URL }}
           MAUTIC_USER: ${{ env.MAUTIC_USER }}
           MAUTIC_PASSWORD: ${{ secrets.MAUTIC_PASSWORD }}
+          EMAIL_ADDRESS: ${{ vars.EMAIL_ADDRESS }}
+          MOBILE_NUMBER: ${{ vars.MOBILE_NUMBER }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
 
-      - name: Finalizing
+      - name: Finalizing Configuration
         run: |
-          echo "Post-installation steps completed successfully for the ${{ github.event.inputs.environment }} environment."
-          echo "Mautic form 'LeadLandingPageForm' should now be available at: ${{ env.MAUTIC_URL }}"
-          echo "Campaign 'LancamentoSemente1' has been created with email sequence"
-          echo "Custom fields and tags have been set up"
-          echo ""
-          echo "Next steps:"
-          echo "1. Run 'Post-Installation Configuration' workflow to set up SendGrid email"
-          echo "2. Test the form and email automation"
-          echo "3. Monitor email delivery and campaign performance"
+          echo "Post-installation configuration completed successfully for the ${{ github.event.inputs.environment }} environment."
+          echo "SendGrid email configuration has been set up"
+          echo "Test email has been sent to: ${{ vars.EMAIL_ADDRESS }}"
+          echo "Check your email inbox for the SendGrid test email"
+          echo "Mautic is now ready for email marketing campaigns" 

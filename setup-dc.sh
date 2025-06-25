@@ -112,6 +112,24 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
     # Replace the site_url value with the domain
     echo "## Updating site_url in Mautic configuration..."
     docker compose exec -T mautic_web sed -i "s|'site_url' => '.*',|'site_url' => 'https://$DOMAIN',|g" /var/www/html/config/local.php
+    
+    # Enable Mautic API
+    echo "## Enabling Mautic API..."
+    if docker compose exec -T mautic_web grep -q "'api'" /var/www/html/config/local.php; then
+        # Update existing API block
+        echo "## Updating existing API configuration..."
+        docker compose exec -T mautic_web sed -i "s/'api_enabled' => false/'api_enabled' => true/g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s/'basic_auth_enabled' => false/'basic_auth_enabled' => true/g" /var/www/html/config/local.php
+    else
+        # Insert new API block before the closing );
+        echo "## Adding new API configuration..."
+        docker compose exec -T mautic_web sed -i "s/);$/'api' => [\n    'api_enabled' => true,\n    'basic_auth_enabled' => true,\n],\n);/" /var/www/html/config/local.php
+    fi
+    
+    # Clear Mautic cache
+    echo "## Clearing Mautic cache..."
+    docker compose exec -T mautic_web rm -rf /var/www/html/var/cache/*
+    echo "## Mautic API enabled successfully"
 fi
 
 echo "## Script execution completed"

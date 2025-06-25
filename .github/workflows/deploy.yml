@@ -137,14 +137,9 @@ jobs:
             exit 0
           fi
 
-          # Extract base domain for zone lookup (e.g., if DOMAIN is m.superare.com.br, get superare.com.br)
-          if [[ "${{ vars.DOMAIN }}" == m.* ]]; then
-            BASE_DOMAIN=$(echo "${{ vars.DOMAIN }}" | sed 's/^m\.//')
-            echo "## Domain ${{ vars.DOMAIN }} detected as subdomain of $BASE_DOMAIN"
-          else
-            BASE_DOMAIN="${{ vars.DOMAIN }}"
-            echo "## Using ${{ vars.DOMAIN }} as main domain"
-          fi
+          # Extract base domain for zone lookup (DOMAIN is now the main domain)
+          BASE_DOMAIN="${{ vars.DOMAIN }}"
+          echo "## Using $BASE_DOMAIN as main domain for zone lookup"
 
           # Get the zone ID for the base domain
           ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$BASE_DOMAIN" \
@@ -196,7 +191,7 @@ jobs:
           }
 
           # Update the domain for Mautic (e.g., m.superare.com.br)
-          update_dns_record "${{ vars.DOMAIN }}"
+          update_dns_record "m.${{ vars.DOMAIN }}"
           echo "DNS records updated successfully"
 
       - name: Wait for server to be accessible
@@ -215,14 +210,14 @@ jobs:
       - name: Prepare virtual server configuration
         if: ${{ vars.DOMAIN }}
         run: |
-          # Rename the nginx-virtual-host-template file
-          mv nginx-virtual-host-template "nginx-virtual-host-${{ vars.DOMAIN }}"
+          # Rename the nginx-virtual-host-template file for Mautic subdomain
+          mv nginx-virtual-host-template "nginx-virtual-host-m.${{ vars.DOMAIN }}"
 
           # Replace placeholders in the nginx configuration
-          sed -i "s/DOMAIN_NAME/${{ vars.DOMAIN }}/g" "nginx-virtual-host-${{ vars.DOMAIN }}"
-          sed -i "s/PORT/${{ env.MAUTIC_PORT }}/g" "nginx-virtual-host-${{ vars.DOMAIN }}"
+          sed -i "s/DOMAIN_NAME/m.${{ vars.DOMAIN }}/g" "nginx-virtual-host-m.${{ vars.DOMAIN }}"
+          sed -i "s/PORT/${{ env.MAUTIC_PORT }}/g" "nginx-virtual-host-m.${{ vars.DOMAIN }}"
 
-          cat nginx-virtual-host-${{ vars.DOMAIN }} # debug
+          cat nginx-virtual-host-m.${{ vars.DOMAIN }} # debug
 
       - name: Prepare setup-dc.sh script
         run: |
@@ -252,12 +247,36 @@ jobs:
           SCRIPT_BEFORE: mkdir -p /var/www
           SCRIPT_AFTER: /var/www/setup-dc.sh > /var/log/setup-dc.log 2>&1
 
+      - name: Install and configure SSL certificates
+        if: ${{ vars.DOMAIN }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          
+          # Install Certbot and obtain SSL certificates
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@${{ env.ip }} "
+            # Install Certbot if not already installed
+            if ! command -v certbot &> /dev/null; then
+              sudo apt-get update
+              sudo apt-get install -y certbot python3-certbot-nginx
+            fi
+            
+            # Obtain SSL certificate for the Mautic subdomain
+            sudo certbot --nginx -n --agree-tos --redirect --email '${{ vars.EMAIL_ADDRESS }}' -d m.${{ vars.DOMAIN }}
+            
+            # Test nginx configuration
+            sudo nginx -t && sudo nginx -s reload
+          "
+          
+          rm -f ~/.ssh/id_rsa
+
       - name: Open your Mautic instance
         run: |
           if [ -z "${DOMAIN}" ]; then
             echo "You can visit the Mautic installation at http://${{ env.ip }}:${{ env.MAUTIC_PORT }}"
           else
-            echo "You can visit the Mautic installation at http://${DOMAIN}"
+            echo "You can visit the Mautic installation at https://m.${DOMAIN}"
           fi
         env:
           DOMAIN: ${{ vars.DOMAIN }}

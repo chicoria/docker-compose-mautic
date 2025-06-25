@@ -1,4 +1,4 @@
-name: Post-Installation Configurations
+name: Post-Installation Pre-Configured Data
 
 # This workflow is triggered manually from the Actions tab on your GitHub repository.
 on:
@@ -14,7 +14,7 @@ on:
 
 jobs:
   configure:
-    name: Run Post-Installation Steps for ${{ github.event.inputs.environment }}
+    name: Run Post-Installation Pre-Configured Data for ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
 
     steps:
@@ -94,7 +94,7 @@ jobs:
           echo "Updated .mautic_env file:"
           cat .mautic_env
 
-      - name: Run Mautic form creation script
+      - name: Create Mautic form and campaign
         run: |
           echo "Creating Mautic form using URL: ${{ env.MAUTIC_URL }}"
           echo "Using user: ${{ env.MAUTIC_USER }}"
@@ -104,14 +104,11 @@ jobs:
           MAUTIC_USER: ${{ env.MAUTIC_USER }}
           MAUTIC_PASSWORD: ${{ secrets.MAUTIC_PASSWORD }}
 
-      - name: Finalizing
+      - name: Finalizing Pre-Configured Data
         run: |
-          echo "Post-installation steps completed successfully for the ${{ github.event.inputs.environment }} environment."
-          echo "Mautic form 'LeadLandingPageForm' should now be available at: ${{ env.MAUTIC_URL }}"
+          echo "Post-installation pre-configured data completed successfully for the ${{ github.event.inputs.environment }} environment."
+          echo "Mautic form 'LeadLandingPageForm' has been created at: ${{ env.MAUTIC_URL }}"
           echo "Campaign 'LancamentoSemente1' has been created with email sequence"
           echo "Custom fields and tags have been set up"
-          echo ""
-          echo "Next steps:"
-          echo "1. Run 'Post-Installation Configuration' workflow to set up SendGrid email"
-          echo "2. Test the form and email automation"
-          echo "3. Monitor email delivery and campaign performance"
+          echo "3-day welcome email sequence is ready"
+          echo "Form is ready to capture leads and trigger email automation" 
