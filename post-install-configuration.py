@@ -205,15 +205,10 @@ def main():
     # Provide setup instructions
     get_sendgrid_setup_instructions()
     
-    # Ask for confirmation
+    # Remove prompt: always proceed in CI/CD
     print("\n⚠️  IMPORTANT: Make sure SENDGRID_API_KEY is set in GitHub Actions secrets!")
     print("The script will automatically use the API key from secrets.")
-    
-    response = input("\nDo you want to proceed with the configuration? (y/N): ")
-    if response.lower() != 'y':
-        print("Please add SENDGRID_API_KEY to GitHub Actions secrets and run the script again.")
-        sys.exit(0)
-    
+    # Always proceed
     # Configure via API
     if configure_sendgrid_via_api():
         print("\n✅ SendGrid configuration completed via API!")

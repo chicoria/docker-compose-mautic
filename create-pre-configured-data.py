@@ -394,18 +394,6 @@ print(f"4. Welcome email sent immediately (D+0)")
 print(f"5. Follow-up email sent next day (D+1)")
 print(f"6. Final email sent 2 days later (D+2)")
 
-print("\n⚠️  IMPORTANT: Make sure SENDGRID_API_KEY is set in GitHub Actions secrets!")
-print("The script will automatically use the API key from secrets.")
-
-# In CI/CD, always proceed. Locally, you can uncomment the input for manual confirmation.
-if os.getenv("CI", "false").lower() == "true":
-    response = "y"
-else:
-    try:
-        response = input("\nDo you want to proceed with the configuration? (y/N): ")
-    except EOFError:
-        response = "n"
-
-if response.lower() != 'y':
-    print("Please add SENDGRID_API_KEY to GitHub Actions secrets and run the script again.")
-    sys.exit(0) 
+# Remove any prompt: always proceed in CI/CD
+# (No need for SENDGRID_API_KEY check here, as this script is for pre-configured data)
+# End of script 
