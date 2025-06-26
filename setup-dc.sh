@@ -1,5 +1,23 @@
 #!/bin/bash
 
+# Function to URL-encode a string
+url_encode() {
+    local string="${1}"
+    local strlen=${#string}
+    local encoded=""
+    local pos c o
+
+    for (( pos=0 ; pos<strlen ; pos++ )); do
+        c=${string:$pos:1}
+        case "$c" in
+            [-_.~a-zA-Z0-9] ) o="${c}" ;;
+            * )               printf -v o '%%%02x' "'$c"
+        esac
+        encoded+="${o}"
+    done
+    echo "${encoded}"
+}
+
 cd /var/www
 docker compose build
 docker compose up -d db --wait && docker compose up -d mautic_web --wait
@@ -128,20 +146,28 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
     
     # Configure Mautic Email Settings
     echo "## Configuring Mautic Email Settings..."
-    if docker compose exec -T mautic_web grep -q "'mailer'" /var/www/html/config/local.php; then
+    
+    # URL-encode the values for DSN format
+    ENCODED_USER=$(url_encode "{{MAUTIC_MAILER_USER}}")
+    ENCODED_PASSWORD=$(url_encode "{{MAUTIC_MAILER_PASSWORD}}")
+    ENCODED_HOST=$(url_encode "{{MAUTIC_MAILER_HOST}}")
+    ENCODED_PORT=$(url_encode "{{MAUTIC_MAILER_PORT}}")
+    ENCODED_ENCRYPTION=$(url_encode "{{MAUTIC_MAILER_ENCRYPTION}}")
+    ENCODED_AUTH_MODE=$(url_encode "{{MAUTIC_MAILER_AUTH_MODE}}")
+    
+    # Build the DSN string
+    MAILER_DSN="smtp://${ENCODED_USER}:${ENCODED_PASSWORD}@${ENCODED_HOST}:${ENCODED_PORT}?encryption=${ENCODED_ENCRYPTION}&auth_mode=${ENCODED_AUTH_MODE}"
+    
+    if docker compose exec -T mautic_web grep -q "'mailer_from_name'" /var/www/html/config/local.php; then
         # Update existing mailer block
         echo "## Updating existing mailer configuration..."
-        docker compose exec -T mautic_web sed -i "s/'transport' => '.*'/'transport' => '${MAUTIC_MAILER_TRANSPORT}'/g" /var/www/html/config/local.php
-        docker compose exec -T mautic_web sed -i "s/'host' => '.*'/'host' => '${MAUTIC_MAILER_HOST}'/g" /var/www/html/config/local.php
-        docker compose exec -T mautic_web sed -i "s/'port' => '.*'/'port' => '${MAUTIC_MAILER_PORT}'/g" /var/www/html/config/local.php
-        docker compose exec -T mautic_web sed -i "s/'encryption' => '.*'/'encryption' => '${MAUTIC_MAILER_ENCRYPTION}'/g" /var/www/html/config/local.php
-        docker compose exec -T mautic_web sed -i "s/'user' => '.*'/'user' => '${MAUTIC_MAILER_USER}'/g" /var/www/html/config/local.php
-        docker compose exec -T mautic_web sed -i "s/'password' => '.*'/'password' => '${MAUTIC_MAILER_PASSWORD}'/g" /var/www/html/config/local.php
-        docker compose exec -T mautic_web sed -i "s/'auth_mode' => '.*'/'auth_mode' => '${MAUTIC_MAILER_AUTH_MODE}'/g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s/'mailer_from_name' => '.*'/'mailer_from_name' => '{{MAUTIC_MAILER_FROM_NAME}}'/g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s/'mailer_from_email' => '.*'/'mailer_from_email' => '{{MAUTIC_MAILER_FROM_EMAIL}}'/g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s|'mailer_dsn' => '.*'|'mailer_dsn' => '${MAILER_DSN}'|g" /var/www/html/config/local.php
     else
         # Insert new mailer block before the closing );
         echo "## Adding new mailer configuration..."
-        docker compose exec -T mautic_web sed -i "s/);$/'mailer' => [\n    'transport' => '${MAUTIC_MAILER_TRANSPORT}',\n    'host' => '${MAUTIC_MAILER_HOST}',\n    'port' => '${MAUTIC_MAILER_PORT}',\n    'encryption' => '${MAUTIC_MAILER_ENCRYPTION}',\n    'user' => '${MAUTIC_MAILER_USER}',\n    'password' => '${MAUTIC_MAILER_PASSWORD}',\n    'auth_mode' => '${MAUTIC_MAILER_AUTH_MODE}',\n],\n);/" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s/);$/'mailer_from_name' => '{{MAUTIC_MAILER_FROM_NAME}}',\n    'mailer_from_email' => '{{MAUTIC_MAILER_FROM_EMAIL}}',\n    'mailer_reply_to_email' => null,\n    'mailer_return_path' => null,\n    'mailer_address_length_limit' => 320,\n    'mailer_append_tracking_pixel' => 1,\n    'mailer_convert_embed_images' => 0,\n    'mailer_custom_headers' => array(),\n    'mailer_dsn' => '${MAILER_DSN}',\n    'mailer_is_owner' => 0,\n    'mailer_memory_msg_limit' => 100,\n);/" /var/www/html/config/local.php
     fi
     
     # Clear Mautic cache
