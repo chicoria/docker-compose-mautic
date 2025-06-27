@@ -13,6 +13,13 @@ echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
 sudo ufw allow 80
 sudo ufw allow 443
 
+# Allow outbound SMTP traffic
+sudo ufw allow out 587/tcp
+
+# Block direct IP access to Mautic (only allow domain-based access)
+# This will block direct access to port 8001 from external IPs
+# sudo ufw deny 8001
+
 # Install Nginx
 sudo apt-get update
 sudo apt-get install -y nginx vim nano
@@ -33,3 +40,5 @@ sudo chown -R 999:999 /mnt/do-volume/mysql
 # Create SSL directory for Cloudflare
 sudo mkdir -p /etc/nginx/ssl
 sudo chmod 700 /etc/nginx/ssl
+
+
