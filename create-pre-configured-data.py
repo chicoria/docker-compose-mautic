@@ -244,7 +244,7 @@ print("\n=== Step 3: Creating Campaign ===")
 def get_campaign_id_by_name(campaign_name):
     campaigns_response = make_api_request("campaigns")
     if campaigns_response and 'campaigns' in campaigns_response:
-        for campaign in campaigns_response['campaigns'].values():
+        for campaign in campaigns_response['campaigns']:
             if campaign.get('name') == campaign_name:
                 return campaign.get('id')
     return None
