@@ -318,14 +318,6 @@ else:
         "name": segment_name,
         "alias": "semente1",
         "description": "Segmento para campanha Semente1",
-        "filters": [
-            {
-                "glue": "and",
-                "field": "tags",
-                "type": "text",
-                "filter": tag_name
-            }
-        ],
         "isPublished": True
     }
     print(f"Creating segment '{segment_name}'...")
