@@ -104,6 +104,35 @@ if not profissao_field_id:
         print("❌ Failed to create custom field 'profissao'")
         sys.exit(1)
 
+# --- Step 2: Create Email Category ---
+print("\n=== Step 2: Creating Email Category ===")
+
+def get_email_category_id_by_name(category_name):
+    categories_response = make_api_request("categories?type=email")
+    if categories_response and 'categories' in categories_response:
+        for cat in categories_response['categories']:
+            if cat.get('title') == category_name:
+                return cat.get('id')
+    return None
+
+email_category_name = "Semente Aquecimento"
+email_category_id = get_email_category_id_by_name(email_category_name)
+if email_category_id:
+    print(f"Email category '{email_category_name}' already exists with ID {email_category_id}")
+else:
+    category_data = {
+        "title": email_category_name,
+        "bundle": "email"
+    }
+    print(f"Creating email category '{email_category_name}'...")
+    category_result = make_api_request("categories/new", "POST", category_data)
+    if category_result:
+        print(f"✅ Email category '{email_category_name}' created successfully")
+        email_category_id = category_result.get('category', {}).get('id')
+    else:
+        print(f"❌ Failed to create email category")
+        sys.exit(1)
+
 # --- Step 2: Create Welcome Emails (moved up) ---
 print("\n=== Step 2: Creating Welcome Email Sequence ===")
 
@@ -145,7 +174,8 @@ else:
         <p>Atenciosamente,<br>
         <strong>Equipe Superare</strong></p>
         """,
-        "isPublished": True
+        "isPublished": True,
+        "category": email_category_id
     }
     print("Creating welcome email (D+0)...")
     email1_result = make_api_request("emails/new", "POST", email1_data)
@@ -184,7 +214,8 @@ else:
         <p>Atenciosamente,<br>
         <strong>Equipe Superare</strong></p>
         """,
-        "isPublished": True
+        "isPublished": True,
+        "category": email_category_id
     }
     print("Creating day 1 email...")
     email2_result = make_api_request("emails/new", "POST", email2_data)
@@ -227,7 +258,8 @@ else:
         <p>Atenciosamente,<br>
         <strong>Equipe Superare</strong></p>
         """,
-        "isPublished": True
+        "isPublished": True,
+        "category": email_category_id
     }
     print("Creating day 2 email...")
     email3_result = make_api_request("emails/new", "POST", email3_data)
