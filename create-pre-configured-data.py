@@ -323,9 +323,7 @@ else:
                 "glue": "and",
                 "field": "tags",
                 "type": "text",
-                "filter": tag_name,
-                "display": "Tag",
-                "operator": "="
+                "filter": tag_name
             }
         ],
         "isPublished": True
