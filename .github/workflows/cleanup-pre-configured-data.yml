@@ -1,0 +1,71 @@
+name: Cleanup Pre-Configured Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to clean up"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+
+jobs:
+  cleanup:
+    name: Cleanup Pre-Configured Data for ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check required secrets
+        env:
+          MAUTIC_PASSWORD: ${{ secrets.MAUTIC_PASSWORD }}
+          EMAIL_ADDRESS: ${{ vars.EMAIL_ADDRESS }}
+          DOMAIN: ${{ vars.DOMAIN }}
+        run: |
+          error_missing_secrets=()
+          check_secret() {
+            if [ -z "${!1}" ]; then
+              error_missing_secrets+=("$1")
+            fi
+          }
+
+          check_secret "MAUTIC_PASSWORD"
+          check_secret "EMAIL_ADDRESS"
+
+          if [ ${#error_missing_secrets[@]} -ne 0 ]; then
+            echo "Error: Missing required secrets/variables: ${error_missing_secrets[*]}"
+            exit 1
+          fi
+
+      - name: Setup Python environment
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Update .mautic_env with deployment values
+        run: |
+          sed -i "s|MAUTIC_PASSWORD=.*|MAUTIC_PASSWORD=\"${{ secrets.MAUTIC_PASSWORD }}\"|" .mautic_env
+          MAUTIC_HOST="m.${DOMAIN}"
+          sed -i "s|MAUTIC_HOST=.*|MAUTIC_HOST=\"$MAUTIC_HOST\"|" .mautic_env
+          echo "Updated .mautic_env file:"
+          cat .mautic_env
+        env:
+          DOMAIN: ${{ vars.DOMAIN }}
+
+      - name: Run cleanup script
+        run: |
+          echo "Running cleanup-pre-configured-data.py..."
+          python cleanup-pre-configured-data.py
+        env:
+          MAUTIC_PASSWORD: ${{ secrets.MAUTIC_PASSWORD }}
+          EMAIL_ADDRESS: ${{ vars.EMAIL_ADDRESS }}
+          DOMAIN: ${{ vars.DOMAIN }}
+
+      - name: Finalizing Cleanup
+        run: |
+          echo "Cleanup completed for the ${{ github.event.inputs.environment }} environment."
+          echo "All pre-configured Mautic resources have been deleted if they existed."
