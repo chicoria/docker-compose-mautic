@@ -1,3 +1,12 @@
+# Block direct IP access
+server {
+    listen 80;
+    server_name _;
+    
+    # Block all requests that don't match a specific domain
+    return 444;
+}
+
 server {
     listen 80;
     server_name m.DOMAIN_NAME;

@@ -223,7 +223,6 @@ jobs:
         env:
           EMAIL_ADDRESS: ${{ vars.EMAIL_ADDRESS }}
           DOMAIN: ${{ vars.DOMAIN }}
-
         run: |
           # Replace placeholders in setup-dc.sh
           sed -i "s/{{IP_ADDRESS}}/${{ env.ip }}/g" setup-dc.sh
@@ -233,20 +232,11 @@ jobs:
           if [ ! -z "${{ env.DOMAIN }}" ]; then
             sed -i "s/{{DOMAIN_NAME}}/${{ env.DOMAIN }}/g" setup-dc.sh
           fi
-          
-          # Replace email configuration placeholders in setup-dc.sh
+          # Replace mailer config placeholders
           sed -i "s/{{MAUTIC_MAILER_FROM_NAME}}/${{ vars.MAUTIC_MAILER_FROM_NAME }}/g" setup-dc.sh
           sed -i "s/{{MAUTIC_MAILER_FROM_EMAIL}}/${{ vars.MAUTIC_MAILER_FROM_EMAIL }}/g" setup-dc.sh
-          sed -i "s/{{MAUTIC_MAILER_TRANSPORT}}/smtp/g" setup-dc.sh
-          sed -i "s/{{MAUTIC_MAILER_HOST}}/smtp.sendgrid.net/g" setup-dc.sh
-          sed -i "s/{{MAUTIC_MAILER_PORT}}/587/g" setup-dc.sh
-          sed -i "s/{{MAUTIC_MAILER_USER}}/apikey/g" setup-dc.sh
-          # Escape special characters in the SendGrid API key for sed replacement
-          ESCAPED_API_KEY=$(echo "${{ secrets.SENDGRID_API_KEY }}" | sed 's/[[\.*^$()+?{|]/\\&/g')
-          sed -i "s/{{MAUTIC_MAILER_PASSWORD}}/$ESCAPED_API_KEY/g" setup-dc.sh
-          sed -i "s/{{MAUTIC_MAILER_ENCRYPTION}}/tls/g" setup-dc.sh
-          sed -i "s/{{MAUTIC_MAILER_AUTH_MODE}}/login/g" setup-dc.sh
-          
+          # Inject SendGrid API key from secret
+          sed -i "s/{{MAUTIC_SENDGRID_API_KEY}}/${{ secrets.SENDGRID_API_KEY }}/g" setup-dc.sh
           cat setup-dc.sh # debug
 
       - name: Deploy to Server
@@ -268,7 +258,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          
+
           # Install Certbot and obtain SSL certificates
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@${{ env.ip }} "
             # Install Certbot if not already installed
@@ -283,7 +273,7 @@ jobs:
             # Test nginx configuration
             sudo nginx -t && sudo nginx -s reload
           "
-          
+
           rm -f ~/.ssh/id_rsa
 
       - name: Open your Mautic instance

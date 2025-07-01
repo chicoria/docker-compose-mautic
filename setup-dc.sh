@@ -147,16 +147,8 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
     # Configure Mautic Email Settings
     echo "## Configuring Mautic Email Settings..."
     
-    # URL-encode the values for DSN format
-    ENCODED_USER=$(url_encode "{{MAUTIC_MAILER_USER}}")
-    ENCODED_PASSWORD=$(url_encode "{{MAUTIC_MAILER_PASSWORD}}")
-    ENCODED_HOST=$(url_encode "{{MAUTIC_MAILER_HOST}}")
-    ENCODED_PORT=$(url_encode "{{MAUTIC_MAILER_PORT}}")
-    ENCODED_ENCRYPTION=$(url_encode "{{MAUTIC_MAILER_ENCRYPTION}}")
-    ENCODED_AUTH_MODE=$(url_encode "{{MAUTIC_MAILER_AUTH_MODE}}")
-    
-    # Build the DSN string
-    MAILER_DSN="smtp://${ENCODED_USER}:${ENCODED_PASSWORD}@${ENCODED_HOST}:${ENCODED_PORT}?encryption=${ENCODED_ENCRYPTION}&auth_mode=${ENCODED_AUTH_MODE}"
+    # Build the DSN string for SendGrid API (Mautic way)
+    MAILER_DSN="sendgrid+api://{{MAUTIC_SENDGRID_API_KEY}}@default"
     
     if docker compose exec -T mautic_web grep -q "'mailer_from_name'" /var/www/html/config/local.php; then
         # Update existing mailer block
@@ -170,10 +162,14 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
         docker compose exec -T mautic_web sed -i "s/);$/'mailer_from_name' => '{{MAUTIC_MAILER_FROM_NAME}}',\n    'mailer_from_email' => '{{MAUTIC_MAILER_FROM_EMAIL}}',\n    'mailer_reply_to_email' => null,\n    'mailer_return_path' => null,\n    'mailer_address_length_limit' => 320,\n    'mailer_append_tracking_pixel' => 1,\n    'mailer_convert_embed_images' => 0,\n    'mailer_custom_headers' => array(),\n    'mailer_dsn' => '${MAILER_DSN}',\n    'mailer_is_owner' => 0,\n    'mailer_memory_msg_limit' => 100,\n);/" /var/www/html/config/local.php
     fi
     
+    # Install SendGrid mailer package if not already installed
+    echo "## Installing SendGrid mailer package..."
+    docker compose exec -T mautic_web composer require symfony/sendgrid-mailer --no-interaction --no-dev --optimize-autoloader
+    
     # Clear Mautic cache
     echo "## Clearing Mautic cache..."
-    docker compose exec -T mautic_web rm -rf /var/www/html/var/cache/*
-    echo "## Mautic API enabled successfully"
+    docker compose exec -T mautic_web php /var/www/html/bin/console cache:clear --env=prod
+    echo "## Mautic cache cleared successfully"
     
     # Restart containers to apply configuration changes
     echo "## Restarting containers to apply configuration changes..."
@@ -182,3 +178,5 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
 fi
 
 echo "## Script execution completed"
+
+docker compose exec -T mautic_web bash -c 'cd /var/www/html && /var/www/html/vendor/bin/composer show symfony/sendgrid-mailer'
