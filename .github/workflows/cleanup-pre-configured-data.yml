@@ -58,6 +58,9 @@ jobs:
 
       - name: Run cleanup script
         run: |
+          export MAUTIC_URL="https://m.${DOMAIN}"
+          export MAUTIC_USER="${EMAIL_ADDRESS}"
+          export MAUTIC_PASSWORD="${MAUTIC_PASSWORD}"
           echo "Running cleanup-pre-configured-data.py..."
           python cleanup-pre-configured-data.py
         env:
