@@ -270,53 +270,6 @@ else:
         print("❌ Failed to create day 2 email")
         sys.exit(1)
 
-# --- Step 3: Create Campaign (now with first event) ---
-print("\n=== Step 3: Creating Campaign ===")
-
-def get_campaign_id_by_name(campaign_name):
-    campaigns_response = make_api_request("campaigns")
-    if campaigns_response and 'campaigns' in campaigns_response:
-        for campaign in campaigns_response['campaigns']:
-            if campaign.get('name') == campaign_name:
-                return campaign.get('id')
-    return None
-
-campaign_name = "LancamentoSemente1"
-campaign_id = get_campaign_id_by_name(campaign_name)
-if campaign_id:
-    print(f"Campaign '{campaign_name}' already exists with ID {campaign_id}")
-else:
-    campaign_data = {
-        "name": campaign_name,
-        "description": "Campanha de lançamento para captura de leads",
-        "category": "default",
-        "isPublished": True,
-        "sources": [
-            {
-                "type": "segment",
-                "id": segment_id
-            }
-        ],
-        "events": [
-            {
-                "name": "Send email (D+0)",
-                "type": "email.send",
-                "properties": {
-                    "email": email1_id,
-                    "send_delay": 0
-                }
-            }
-        ]
-    }
-    print(f"Creating campaign '{campaign_name}' with first event and segment source...")
-    campaign_result = make_api_request("campaigns/new", "POST", campaign_data)
-    if campaign_result:
-        print(f"✅ Campaign '{campaign_name}' created successfully")
-        campaign_id = campaign_result.get('campaign', {}).get('id')
-    else:
-        print("❌ Failed to create campaign")
-        sys.exit(1)
-
 # --- Step 3.5: Create Tag ---
 print("\n=== Step 3.5: Creating Tag ===")
 
@@ -383,6 +336,53 @@ else:
         segment_id = segment_result.get('list', {}).get('id')
     else:
         print(f"❌ Failed to create segment")
+        sys.exit(1)
+
+# --- Step 3: Create Campaign (now with first event) ---
+print("\n=== Step 3: Creating Campaign ===")
+
+def get_campaign_id_by_name(campaign_name):
+    campaigns_response = make_api_request("campaigns")
+    if campaigns_response and 'campaigns' in campaigns_response:
+        for campaign in campaigns_response['campaigns']:
+            if campaign.get('name') == campaign_name:
+                return campaign.get('id')
+    return None
+
+campaign_name = "LancamentoSemente1"
+campaign_id = get_campaign_id_by_name(campaign_name)
+if campaign_id:
+    print(f"Campaign '{campaign_name}' already exists with ID {campaign_id}")
+else:
+    campaign_data = {
+        "name": campaign_name,
+        "description": "Campanha de lançamento para captura de leads",
+        "category": "default",
+        "isPublished": True,
+        "sources": [
+            {
+                "type": "segment",
+                "id": segment_id
+            }
+        ],
+        "events": [
+            {
+                "name": "Send email (D+0)",
+                "type": "email.send",
+                "properties": {
+                    "email": email1_id,
+                    "send_delay": 0
+                }
+            }
+        ]
+    }
+    print(f"Creating campaign '{campaign_name}' with first event and segment source...")
+    campaign_result = make_api_request("campaigns/new", "POST", campaign_data)
+    if campaign_result:
+        print(f"✅ Campaign '{campaign_name}' created successfully")
+        campaign_id = campaign_result.get('campaign', {}).get('id')
+    else:
+        print("❌ Failed to create campaign")
         sys.exit(1)
 
 # --- Step 3.8: Add Remaining Emails to Campaign ---
