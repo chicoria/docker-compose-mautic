@@ -244,7 +244,7 @@ print("\n=== Step 3: Creating Campaign ===")
 def get_campaign_id_by_name(campaign_name):
     campaigns_response = make_api_request("campaigns")
     if campaigns_response and 'campaigns' in campaigns_response:
-        for campaign in campaigns_response['campaigns']:
+        for campaign in campaigns_response['campaigns'].values():
             if campaign.get('name') == campaign_name:
                 return campaign.get('id')
     return None
@@ -259,6 +259,12 @@ else:
         "description": "Campanha de lançamento para captura de leads",
         "category": "default",
         "isPublished": True,
+        "sources": [
+            {
+                "type": "segment",
+                "id": segment_id
+            }
+        ],
         "events": [
             {
                 "name": "Send email (D+0)",
@@ -270,7 +276,7 @@ else:
             }
         ]
     }
-    print(f"Creating campaign '{campaign_name}' with first event...")
+    print(f"Creating campaign '{campaign_name}' with first event and segment source...")
     campaign_result = make_api_request("campaigns/new", "POST", campaign_data)
     if campaign_result:
         print(f"✅ Campaign '{campaign_name}' created successfully")
@@ -285,7 +291,7 @@ print("\n=== Step 3.5: Creating Tag ===")
 def get_tag_id_by_name(tag_name):
     tags_response = make_api_request("tags")
     if tags_response and 'tags' in tags_response:
-        for tag in tags_response['tags']:
+        for tag in tags_response['tags'].values():
             if tag.get('tag') == tag_name:
                 return tag.get('id')
     return None
@@ -305,6 +311,46 @@ else:
         tag_id = tag_result.get('tag', {}).get('id')
     else:
         print(f"❌ Failed to create tag")
+        sys.exit(1)
+
+# --- Step 3.6: Create Segment ---
+print("\n=== Step 3.6: Creating Segment ===")
+
+def get_segment_id_by_name(segment_name):
+    segments_response = make_api_request("segments")
+    if segments_response and 'lists' in segments_response:
+        for segment in segments_response['lists'].values():
+            if segment.get('name') == segment_name:
+                return segment.get('id')
+    return None
+
+segment_name = "Semente1"
+segment_id = get_segment_id_by_name(segment_name)
+if segment_id:
+    print(f"Segment '{segment_name}' already exists with ID {segment_id}")
+else:
+    segment_data = {
+        "name": segment_name,
+        "alias": "semente1",
+        "description": "Segmento para campanha Semente1",
+        "filters": [
+            {
+                "glue": "and",
+                "object": "lead",
+                "field": "tags",
+                "type": "text",
+                "filter": tag_name
+            }
+        ],
+        "isPublished": True
+    }
+    print(f"Creating segment '{segment_name}'...")
+    segment_result = make_api_request("segments/new", "POST", segment_data)
+    if segment_result:
+        print(f"✅ Segment '{segment_name}' created successfully")
+        segment_id = segment_result.get('list', {}).get('id')
+    else:
+        print(f"❌ Failed to create segment")
         sys.exit(1)
 
 # --- Step 3.8: Add Remaining Emails to Campaign ---
