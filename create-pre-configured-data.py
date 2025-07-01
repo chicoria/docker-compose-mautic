@@ -321,10 +321,11 @@ else:
         "filters": [
             {
                 "glue": "and",
-                "object": "lead",
                 "field": "tags",
                 "type": "text",
-                "filter": tag_name
+                "filter": tag_name,
+                "display": "Tag",
+                "operator": "="
             }
         ],
         "isPublished": True
