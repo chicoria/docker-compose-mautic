@@ -68,7 +68,7 @@ print("Checking if custom field 'profissao' already exists...")
 fields_response = make_api_request("fields/contact")
 profissao_field_id = None
 if fields_response and 'fields' in fields_response:
-    for field in fields_response['fields']:
+    for field in fields_response['fields'].values():
         if field.get('alias') == 'profissao':
             profissao_field_id = field.get('id')
             print(f"Custom field 'profissao' already exists with ID {profissao_field_id}")
