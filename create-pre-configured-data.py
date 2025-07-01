@@ -92,45 +92,8 @@ else:
     print("❌ Failed to create custom field 'profissao'")
     sys.exit(1)
 
-# --- Step 2: Create Campaign ---
-print("\n=== Step 2: Creating Campaign ===")
-
-campaign_data = {
-    "name": "LancamentoSemente1",
-    "description": "Campanha de lançamento para captura de leads",
-    "category": "default",
-    "isPublished": True
-}
-
-print("Creating campaign 'LancamentoSemente1'...")
-campaign_result = make_api_request("campaigns/new", "POST", campaign_data)
-
-if campaign_result:
-    print("✅ Campaign 'LancamentoSemente1' created successfully")
-    campaign_id = campaign_result.get('campaign', {}).get('id')
-else:
-    print("❌ Failed to create campaign")
-    sys.exit(1)
-
-# --- Step 2.5: Create Tag ---
-print("\n=== Step 2.5: Creating Tag ===")
-
-tag_data = {
-    "tag": "Semente1"
-}
-
-print("Creating tag 'Semente1'...")
-tag_result = make_api_request("tags/new", "POST", tag_data)
-
-if tag_result:
-    print("✅ Tag 'Semente1' created successfully")
-    tag_id = tag_result.get('tag', {}).get('id')
-else:
-    print("❌ Failed to create tag")
-    sys.exit(1)
-
-# --- Step 2.7: Create Welcome Emails ---
-print("\n=== Step 2.7: Creating Welcome Email Sequence ===")
+# --- Step 2: Create Welcome Emails (moved up) ---
+print("\n=== Step 2: Creating Welcome Email Sequence ===")
 
 # Email 1: Day 0 (Welcome)
 email1_data = {
@@ -246,12 +209,58 @@ else:
     print("❌ Failed to create day 2 email")
     sys.exit(1)
 
-# --- Step 2.8: Add Emails to Campaign ---
-print("\n=== Step 2.8: Adding Emails to Campaign ===")
+# --- Step 3: Create Campaign (now with first event) ---
+print("\n=== Step 3: Creating Campaign ===")
 
-# Add emails to campaign with delays
+campaign_data = {
+    "name": "LancamentoSemente1",
+    "description": "Campanha de lançamento para captura de leads",
+    "category": "default",
+    "isPublished": True,
+    "events": [
+        {
+            "name": "Send email (D+0)",
+            "type": "email.send",
+            "properties": {
+                "email": email1_id,
+                "send_delay": 0
+            }
+        }
+    ]
+}
+
+print("Creating campaign 'LancamentoSemente1' with first event...")
+campaign_result = make_api_request("campaigns/new", "POST", campaign_data)
+
+if campaign_result:
+    print("✅ Campaign 'LancamentoSemente1' created successfully")
+    campaign_id = campaign_result.get('campaign', {}).get('id')
+else:
+    print("❌ Failed to create campaign")
+    sys.exit(1)
+
+# --- Step 3.5: Create Tag ---
+print("\n=== Step 3.5: Creating Tag ===")
+
+tag_data = {
+    "tag": "Semente1"
+}
+
+print("Creating tag 'Semente1'...")
+tag_result = make_api_request("tags/new", "POST", tag_data)
+
+if tag_result:
+    print("✅ Tag 'Semente1' created successfully")
+    tag_id = tag_result.get('tag', {}).get('id')
+else:
+    print("❌ Failed to create tag")
+    sys.exit(1)
+
+# --- Step 3.8: Add Remaining Emails to Campaign ---
+print("\n=== Step 3.8: Adding Remaining Emails to Campaign ===")
+
+# Add remaining emails to campaign with delays
 campaign_emails = [
-    {"email": email1_id, "delay": 0},    # D+0
     {"email": email2_id, "delay": 1},    # D+1  
     {"email": email3_id, "delay": 2}     # D+2
 ]
@@ -274,8 +283,8 @@ for email_info in campaign_emails:
     else:
         print(f"❌ Failed to add email D+{email_info['delay']} to campaign")
 
-# --- Step 3: Create Form with Proper Field Mapping ---
-print("\n=== Step 3: Creating Form ===")
+# --- Step 4: Create Form with Proper Field Mapping ---
+print("\n=== Step 4: Creating Form ===")
 
 form_payload = {
     "name": "LeadLandingPageForm",
