@@ -304,8 +304,8 @@ print("\n=== Step 3.6: Creating Segment ===")
 def get_segment_id_by_name(segment_name):
     segments_response = make_api_request("segments")
     if segments_response and 'lists' in segments_response:
-        for segment in segments_response['lists'].values():
-            if segment.get('name') == segment_name:
+        for segment in segments_response['lists']:
+            if isinstance(segment, dict) and segment.get('name') == segment_name:
                 return segment.get('id')
     return None
 
