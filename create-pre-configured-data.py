@@ -276,8 +276,8 @@ print("\n=== Step 3.5: Creating Tag ===")
 def get_tag_id_by_name(tag_name):
     tags_response = make_api_request("tags")
     if tags_response and 'tags' in tags_response:
-        for tag in tags_response['tags'].values():
-            if tag.get('tag') == tag_name:
+        for tag in tags_response['tags']:
+            if isinstance(tag, dict) and tag.get('tag') == tag_name:
                 return tag.get('id')
     return None
 
