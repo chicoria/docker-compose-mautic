@@ -58,7 +58,7 @@ print("\n=== Deleting Custom Field 'profissao' ===")
 fields_response = make_api_request("fields/contact")
 profissao_field_id = None
 if fields_response and 'fields' in fields_response:
-    for field in fields_response['fields']:
+    for field in fields_response['fields'].values():
         if field.get('alias') == CUSTOM_FIELD_ALIAS:
             profissao_field_id = field.get('id')
             break
