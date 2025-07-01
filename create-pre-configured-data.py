@@ -110,7 +110,7 @@ print("\n=== Step 2: Creating Welcome Email Sequence ===")
 def get_email_id_by_name(email_name):
     emails_response = make_api_request("emails")
     if emails_response and 'emails' in emails_response:
-        for email in emails_response['emails']:
+        for email in emails_response['emails'].values():
             if email.get('name') == email_name:
                 return email.get('id')
     return None
