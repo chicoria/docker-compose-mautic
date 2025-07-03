@@ -360,7 +360,17 @@ else:
     campaign_data = {
         "name": campaign_name,
         "description": "Campanha de lançamento para captura de leads",
-        "isPublished": True
+        "isPublished": True,
+        "events": [
+            {
+                "name": "Send email (D+0)",
+                "type": "email.send",
+                "properties": {
+                    "email": email1_id,
+                    "send_delay": 0
+                }
+            }
+        ]
     }
     print(f"Creating campaign '{campaign_name}'...")
     campaign_result = make_api_request("campaigns/new", "POST", campaign_data)
@@ -389,27 +399,28 @@ else:
     print("❌ Campaign ID or Segment ID missing, cannot add source.")
     sys.exit(1)
 
-# --- Step 3.8: Add First Event to Campaign ---
-print("\n=== Step 3.8: Adding First Event to Campaign ===")
-if campaign_id and email1_id:
+# --- Step 3.8: Add Remaining Email Events to Campaign ---
+print("\n=== Step 3.8: Adding Remaining Email Events to Campaign ===")
+remaining_emails = [
+    {"id": email2_id, "delay": 1, "name": "Send email (D+1)"},
+    {"id": email3_id, "delay": 2, "name": "Send email (D+2)"}
+]
+for email in remaining_emails:
     event_data = {
-        "name": "Send email (D+0)",
+        "name": email["name"],
         "type": "email.send",
         "properties": {
-            "email": email1_id,
-            "send_delay": 0
+            "email": email["id"],
+            "send_delay": email["delay"]
         }
     }
-    print(f"Adding first event (send email) to campaign '{campaign_name}' (ID: {campaign_id})...")
+    print(f"Adding event '{email['name']}' to campaign '{campaign_name}' (ID: {campaign_id})...")
     event_result = make_api_request(f"campaigns/{campaign_id}/events/add", "POST", event_data)
     if event_result:
-        print(f"✅ First event added to campaign")
+        print(f"✅ Event '{email['name']}' added to campaign")
     else:
-        print(f"❌ Failed to add first event to campaign")
+        print(f"❌ Failed to add event '{email['name']}' to campaign")
         sys.exit(1)
-else:
-    print("❌ Campaign ID or Email1 ID missing, cannot add event.")
-    sys.exit(1)
 
 # --- Step 4: Create Form with Proper Field Mapping ---
 print("\n=== Step 4: Creating Form ===")
