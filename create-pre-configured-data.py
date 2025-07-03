@@ -51,6 +51,8 @@ def make_api_request(endpoint, method="GET", data=None):
             response = requests.post(url, json=data, auth=auth, timeout=30)
         elif method == "PUT":
             response = requests.put(url, json=data, auth=auth, timeout=30)
+        elif method == "DELETE":
+            response = requests.delete(url, auth=auth, timeout=30)
         
         response.raise_for_status()
         return response.json()
@@ -68,8 +70,8 @@ print("Checking if custom field 'profissao' already exists...")
 fields_response = make_api_request("fields/contact")
 profissao_field_id = None
 if fields_response and 'fields' in fields_response:
-    for field in fields_response['fields'].values():
-        if field.get('alias') == 'profissao':
+    for field in fields_response['fields']:
+        if isinstance(field, dict) and field.get('alias') == 'profissao':
             profissao_field_id = field.get('id')
             print(f"Custom field 'profissao' already exists with ID {profissao_field_id}")
             break
@@ -129,7 +131,7 @@ else:
     if category_result:
         print(f"✅ Email category '{email_category_name}' created successfully")
         email_category_id = category_result.get('category', {}).get('id')
-else:
+    else:
         print(f"❌ Failed to create email category")
     sys.exit(1)
 
@@ -150,7 +152,7 @@ email1_id = get_email_id_by_name(email1_name)
 if email1_id:
     print(f"Email '{email1_name}' already exists with ID {email1_id}")
 else:
-email1_data = {
+    email1_data = {
         "name": email1_name,
     "subject": "Bem-vindo ao Método Superare! 🌟",
     "content": """
@@ -192,7 +194,7 @@ email2_id = get_email_id_by_name(email2_name)
 if email2_id:
     print(f"Email '{email2_name}' already exists with ID {email2_id}")
 else:
-email2_data = {
+    email2_data = {
         "name": email2_name,
     "subject": "Os 3 Pilares do Método Superare 📚",
     "content": """
@@ -232,7 +234,7 @@ email3_id = get_email_id_by_name(email3_name)
 if email3_id:
     print(f"Email '{email3_name}' already exists with ID {email3_id}")
 else:
-email3_data = {
+    email3_data = {
         "name": email3_name,
     "subject": "Como Aplicar o Método Superare na Prática 🚀",
     "content": """
@@ -415,91 +417,91 @@ form_id = get_form_id_by_name(form_name)
 if form_id:
     print(f"Form '{form_name}' already exists with ID {form_id}")
 else:
-form_payload = {
+    form_payload = {
         "name": form_name,
-    "alias": "leadlandingpageform",
-    "formType": "campaign",
-    "isPublished": True,
-    "fields": [
-        {
-            "label": "Nome",
-            "type": "text",
-            "alias": "firstname",  # Maps to contact firstname field
-            "isRequired": True,
-            "validationMessage": "O campo Nome é obrigatório."
-        },
-        {
-            "label": "Email",
-            "type": "email",
-            "alias": "email",  # Maps to contact email field
-            "isRequired": True,
-            "validationMessage": "Por favor, insira um email válido."
-        },
-        {
-            "label": "Código do País",
-            "type": "text",
-            "alias": "country_code",  # Custom field for country code
-            "isRequired": True,
-            "properties": {
-                "maxLength": 4
+        "alias": "leadlandingpageform",
+        "formType": "campaign",
+        "isPublished": True,
+        "fields": [
+            {
+                "label": "Nome",
+                "type": "text",
+                "alias": "firstname",  # Maps to contact firstname field
+                "isRequired": True,
+                "validationMessage": "O campo Nome é obrigatório."
             },
-            "validationMessage": "O código do país é obrigatório (ex: +55, +1, +44)."
-        },
-        {
-            "label": "Celular",
-            "type": "tel",
-            "alias": "mobile",  # Maps to contact mobile field
-            "isRequired": True,
-            "validationMessage": "O campo Celular é obrigatório."
-        },
-        {
-            "label": "Área de Atuação",
-            "type": "select",
-            "alias": "profissao",  # Maps to custom profession field
-            "isRequired": True,
-            "properties": {
-                "list": [
-                    {"label": "Educação Física", "value": "educacao_fisica"},
-                    {"label": "Fisioterapia", "value": "fisioterapia"},
-                    {"label": "Medicina Esportiva", "value": "medicina_esportiva"},
-                    {"label": "Medicina", "value": "medicina"},
-                    {"label": "Empreendedor", "value": "empreendedor"},
-                    {"label": "Outro", "value": "outro"}
-                ]
+            {
+                "label": "Email",
+                "type": "email",
+                "alias": "email",  # Maps to contact email field
+                "isRequired": True,
+                "validationMessage": "Por favor, insira um email válido."
             },
-            "validationMessage": "Por favor, selecione sua área de atuação."
-        }
-    ],
-    "actions": [
-        {
-            "name": "Add to campaign",
-            "type": "campaign.add",
-            "properties": {
-                "campaign": campaign_id
+            {
+                "label": "Código do País",
+                "type": "text",
+                "alias": "country_code",  # Custom field for country code
+                "isRequired": True,
+                "properties": {
+                    "maxLength": 4
+                },
+                "validationMessage": "O código do país é obrigatório (ex: +55, +1, +44)."
+            },
+            {
+                "label": "Celular",
+                "type": "tel",
+                "alias": "mobile",  # Maps to contact mobile field
+                "isRequired": True,
+                "validationMessage": "O campo Celular é obrigatório."
+            },
+            {
+                "label": "Área de Atuação",
+                "type": "select",
+                "alias": "profissao",  # Maps to custom profession field
+                "isRequired": True,
+                "properties": {
+                    "list": [
+                        {"label": "Educação Física", "value": "educacao_fisica"},
+                        {"label": "Fisioterapia", "value": "fisioterapia"},
+                        {"label": "Medicina Esportiva", "value": "medicina_esportiva"},
+                        {"label": "Medicina", "value": "medicina"},
+                        {"label": "Empreendedor", "value": "empreendedor"},
+                        {"label": "Outro", "value": "outro"}
+                    ]
+                },
+                "validationMessage": "Por favor, selecione sua área de atuação."
             }
-        },
-        {
-            "name": "Add tag",
-            "type": "contact.addtag",
-            "properties": {
+        ],
+        "actions": [
+            {
+                "name": "Add to campaign",
+                "type": "campaign.add",
+                "properties": {
+                    "campaign": campaign_id
+                }
+            },
+            {
+                "name": "Add tag",
+                "type": "contact.addtag",
+                "properties": {
                     "tags": [tag_name]
+                }
             }
-        }
-    ]
-}
+        ]
+    }
     print(f"Creating form '{form_name}'...")
-form_result = make_api_request("forms/new", "POST", form_payload)
-if form_result:
+    form_result = make_api_request("forms/new", "POST", form_payload)
+    if form_result:
         print(f"✅ Form '{form_name}' created successfully")
-    form_id = form_result.get('form', {}).get('id')
-    print(f"Form ID: {form_id}")
-    print(f"Campaign ID: {campaign_id}")
-    print(f"Tag ID: {tag_id}")
-    print("\n--- Form Details ---")
-    print(json.dumps(form_result, indent=2))
-else:
+        form_id = form_result.get('form', {}).get('id')
+        print(f"Form ID: {form_id}")
+        print(f"Campaign ID: {campaign_id}")
+        print(f"Tag ID: {tag_id}")
+        print("\n--- Form Details ---")
+        print(json.dumps(form_result, indent=2))
+    else:
         print(f"❌ Failed to create form")
-    sys.exit(1)
+        sys.exit(1)
 
 # --- Step 4: Verify Field Mapping ---
 print("\n=== Step 4: Field Mapping Summary ===")
