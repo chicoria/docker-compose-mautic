@@ -75,34 +75,34 @@ if fields_response and 'fields' in fields_response:
             break
 
 if not profissao_field_id:
-# Custom field for profession/area de atuação
-profession_field = {
-    "label": "Profissão",
-    "alias": "profissao",
-    "type": "select",
-    "group": "core",
-    "object": "contact",
-    "properties": {
-        "list": [
-            {"label": "Educação Física", "value": "educacao_fisica"},
-            {"label": "Fisioterapia", "value": "fisioterapia"},
-            {"label": "Medicina Esportiva", "value": "medicina_esportiva"},
-            {"label": "Medicina", "value": "medicina"},
-            {"label": "Empreendedor", "value": "empreendedor"},
-            {"label": "Outro", "value": "outro"}
-        ]
+    # Custom field for profession/area de atuação
+    profession_field = {
+        "label": "Profissão",
+        "alias": "profissao",
+        "type": "select",
+        "group": "core",
+        "object": "contact",
+        "properties": {
+            "list": [
+                {"label": "Educação Física", "value": "educacao_fisica"},
+                {"label": "Fisioterapia", "value": "fisioterapia"},
+                {"label": "Medicina Esportiva", "value": "medicina_esportiva"},
+                {"label": "Medicina", "value": "medicina"},
+                {"label": "Empreendedor", "value": "empreendedor"},
+                {"label": "Outro", "value": "outro"}
+            ]
+        }
     }
-}
 
-print("Creating custom field 'profissao'...")
-profession_result = make_api_request("fields/contact/new", "POST", profession_field)
+    print("Creating custom field 'profissao'...")
+    profession_result = make_api_request("fields/contact/new", "POST", profession_field)
 
-if profession_result:
-    print("✅ Custom field 'profissao' created successfully")
-    profissao_field_id = profession_result.get('field', {}).get('id')
-else:
-    print("❌ Failed to create custom field 'profissao'")
-    sys.exit(1)
+    if profession_result:
+        print("✅ Custom field 'profissao' created successfully")
+        profissao_field_id = profession_result.get('field', {}).get('id')
+    else:
+        print("❌ Failed to create custom field 'profissao'")
+        sys.exit(1)
 
 # --- Step 2: Create Email Category ---
 print("\n=== Step 2: Creating Email Category ===")
