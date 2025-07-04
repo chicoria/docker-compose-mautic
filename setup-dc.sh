@@ -111,6 +111,24 @@ fi
 ln -s $SOURCE_PATH $TARGET_PATH
 echo "Symlink created for $DOMAIN configuration."
 
+# --- Block direct IP access in Nginx config ---
+NGINX_DEFAULT="/etc/nginx/sites-available/default"
+
+# Backup the original config
+sudo cp "$NGINX_DEFAULT" "$NGINX_DEFAULT.bak.$(date +%s)"
+
+# Remove any existing server blocks with 'default_server' on port 80
+sudo awk '
+/server\s*{/ {in_server=1; server_block=""; next;}
+in_server {server_block=server_block $0 "\n"; if ($0 ~ /}/) {in_server=0; if (server_block ~ /default_server/) next; else print "server {\n" server_block; server_block="";} next;}
+{print;}
+' "$NGINX_DEFAULT" > "$NGINX_DEFAULT.tmp" && sudo mv "$NGINX_DEFAULT.tmp" "$NGINX_DEFAULT"
+
+# Prepend the blocking server block if not already present
+sudo grep -q 'return 444;' "$NGINX_DEFAULT" || \
+sudo sed -i '1i\
+server {\n    listen 80;\n    server_name _;\n    return 444;\n}\n' "$NGINX_DEFAULT"
+
 if ! nginx -t; then
     echo "Nginx configuration test failed, stopping the script."
     exit 1
