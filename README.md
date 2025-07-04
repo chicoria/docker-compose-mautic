@@ -45,6 +45,13 @@ The deployment includes comprehensive security measures:
 - **Field Mapping**: Supports custom contact fields (country code, profession)
 - **API Integration**: Mautic API enabled for programmatic access
 
+## Nginx Direct IP Blocking (DRY Approach)
+
+- **Direct IP blocking is handled globally** in `/etc/nginx/sites-available/default`.
+- The deployment script (`setup-dc.sh`) ensures that any HTTP request to the server's IP (or unknown hostnames) is immediately closed with a 444 status, preventing direct access.
+- **Domain-specific Nginx configs** (from `nginx-virtual-host-template`) do not include a direct IP blocking block—this keeps configuration DRY and avoids redundancy.
+- All security rules for sensitive files, CORS, etc., are defined in the domain-specific server block only.
+
 ## Deployment
 
 ### Prerequisites
