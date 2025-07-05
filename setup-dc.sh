@@ -171,9 +171,8 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
         docker compose exec -T mautic_web sed -i "s/);$/'mailer_from_name' => '{{MAUTIC_MAILER_FROM_NAME}}',\n    'mailer_from_email' => '{{MAUTIC_MAILER_FROM_EMAIL}}',\n    'mailer_reply_to_email' => null,\n    'mailer_return_path' => null,\n    'mailer_address_length_limit' => 320,\n    'mailer_append_tracking_pixel' => 1,\n    'mailer_convert_embed_images' => 0,\n    'mailer_custom_headers' => array(),\n    'mailer_dsn' => '${MAILER_DSN}',\n    'mailer_is_owner' => 0,\n    'mailer_memory_msg_limit' => 100,\n);/" /var/www/html/config/local.php
     fi
     
-    # Install SendGrid mailer package if not already installed
-    echo "## Installing SendGrid mailer package..."
-    docker compose exec -T mautic_web composer require symfony/sendgrid-mailer --no-interaction --no-dev --optimize-autoloader
+    # SendGrid mailer bridge is installed during Docker build
+    echo "## SendGrid mailer bridge is already installed in the image"
     
     # Clear Mautic cache
     echo "## Clearing Mautic cache..."
@@ -187,5 +186,3 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
 fi
 
 echo "## Script execution completed"
-
-docker compose exec -T mautic_web bash -c 'cd /var/www/html && /var/www/html/vendor/bin/composer show symfony/sendgrid-mailer'
