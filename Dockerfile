@@ -14,6 +14,10 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 RUN cd /var/www/html && \
     COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_PROCESS_TIMEOUT=10000  vendor/bin/composer require chimpino/theme-air:^1.0 --no-scripts --no-interaction
 
+# Install SendGrid mailer bridge during build
+RUN cd /var/www/html && \
+    COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_PROCESS_TIMEOUT=10000 vendor/bin/composer require symfony/sendgrid-mailer --no-scripts --no-interaction --no-dev --optimize-autoloader
+
 # Production stage:
 FROM mautic/mautic:${MAUTIC_VERSION}
 
