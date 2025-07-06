@@ -14,10 +14,6 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 RUN cd /var/www/html && \
     COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_PROCESS_TIMEOUT=10000  vendor/bin/composer require chimpino/theme-air:^1.0 --no-scripts --no-interaction
 
-# Install SendGrid mailer bridge during build
-RUN cd /var/www/html && \
-    COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_PROCESS_TIMEOUT=10000 vendor/bin/composer require symfony/sendgrid-mailer --no-scripts --no-interaction --no-dev --optimize-autoloader
-
 # Production stage:
 FROM mautic/mautic:${MAUTIC_VERSION}
 
@@ -27,6 +23,10 @@ RUN apt-get update && apt-get install -y curl && \
 
 # Copy the built assets and the Mautic installation from the build stage:
 COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
+
+# Install SendGrid mailer bridge in production stage
+RUN cd /var/www/html && \
+    COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_PROCESS_TIMEOUT=10000 composer require symfony/sendgrid-mailer --no-scripts --no-interaction --no-dev --optimize-autoloader
 
 # Copy security .htaccess file
 COPY .htaccess /var/www/html/.htaccess
