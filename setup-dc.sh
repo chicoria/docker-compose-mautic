@@ -19,7 +19,10 @@ url_encode() {
 }
 
 cd /var/www
-docker compose build
+echo "=== Starting Docker Compose Build ==="
+docker compose build --no-cache --progress=plain 2>&1 | tee /var/log/docker_build.log
+echo "=== Docker Compose Build Finished ==="
+
 docker compose up -d db --wait && docker compose up -d mautic_web --wait
 
 echo "## Wait for basic-mautic_web-1 container to be fully running"
@@ -49,7 +52,9 @@ else
 fi
 
 echo "## Starting all the containers"
-docker compose up -d
+echo "=== Starting Docker Compose Up ==="
+docker compose up -d 2>&1 | tee -a /var/log/docker_build.log
+echo "=== Docker Compose Up Finished ==="
 
 DOMAIN="{{DOMAIN_NAME}}"
 
