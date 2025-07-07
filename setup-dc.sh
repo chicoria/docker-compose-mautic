@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Function to URL-encode a string
 url_encode() {
     local string="${1}"
@@ -74,32 +76,6 @@ else
     echo "## Using $DOMAIN as main domain"
 fi
 
-echo "## Checking if $DOMAIN points to this DO droplet..."
-
-# First check if the domain is using Cloudflare
-if dig +short NS $BASE_DOMAIN | grep -q "cloudflare"; then
-    echo "## Domain is using Cloudflare DNS"
-    
-    # Check if the domain is proxied through Cloudflare
-    if dig +short $DOMAIN | grep -q "cloudflare"; then
-        echo "## Domain is proxied through Cloudflare, skipping DNS propagation check"
-    else
-        # Domain is using Cloudflare but not proxied, check the A record
-        DOMAIN_IP=$(dig +short $DOMAIN)
-        if [ "$DOMAIN_IP" != "$DROPLET_IP" ]; then
-            echo "## $DOMAIN does not point to this droplet IP ($DROPLET_IP). Please update your Cloudflare A record."
-            exit 1
-        fi
-    fi
-else
-    # Not using Cloudflare, do standard DNS check
-    echo "## Domain is not using Cloudflare, performing standard DNS check"
-    DOMAIN_IP=$(dig +short $DOMAIN)
-    if [ "$DOMAIN_IP" != "$DROPLET_IP" ]; then
-        echo "## $DOMAIN does not point to this droplet IP ($DROPLET_IP). Exiting..."
-        exit 1
-    fi
-fi
 
 echo "## $DOMAIN is available and points to this droplet. Nginx configuration..."
 
