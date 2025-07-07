@@ -87,14 +87,19 @@ jobs:
             doctl compute volume delete $FILES_VOLUME_ID --force
           fi
 
+      - name: Get VPS IP
+        id: get_ip
+        run: |
+          IP=$(doctl compute droplet get mautic-vps --format PublicIPv4 --no-header)
+          echo "SERVER_IP=$IP" >> $GITHUB_ENV
+
       - name: Remove all Docker containers and images on the droplet
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SERVER_IP: ${{ secrets.SERVER_IP }}
         run: |
           echo "${SSH_PRIVATE_KEY}" > id_rsa
           chmod 600 id_rsa
-          ssh -o StrictHostKeyChecking=no -i id_rsa root@${SERVER_IP} '
+          ssh -o StrictHostKeyChecking=no -i id_rsa root@${{ env.SERVER_IP }} '
             cd /var/www
             echo "Stopping and removing all containers with docker compose..."
             docker compose down --rmi all -v --remove-orphans
