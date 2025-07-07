@@ -24,5 +24,9 @@ RUN apt-get update && apt-get install -y curl && \
 # Copy the built assets and the Mautic installation from the build stage:
 COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
 
+# Install SendGrid mailer bridge in production stage using global composer
+RUN cd /var/www/html && \
+    COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_PROCESS_TIMEOUT=10000 composer require symfony/sendgrid-mailer --no-scripts --no-interaction --optimize-autoloader
+
 # Copy security .htaccess file
 COPY .htaccess /var/www/html/.htaccess
