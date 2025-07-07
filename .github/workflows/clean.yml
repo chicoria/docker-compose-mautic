@@ -112,6 +112,24 @@ jobs:
           '
           rm -f id_rsa
 
+      - name: Clean bind-mounted directories on the droplet
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          echo "${SSH_PRIVATE_KEY}" > id_rsa
+          chmod 600 id_rsa
+          ssh -o StrictHostKeyChecking=no -i id_rsa root@${{ env.SERVER_IP }} '
+            echo "Cleaning bind-mounted directories..."
+            echo "Removing MySQL data from /mnt/do-volume/mysql/..."
+            sudo rm -rf /mnt/do-volume/mysql/*
+            echo "Removing Mautic files from /mnt/do-volume/mautic/..."
+            sudo rm -rf /mnt/do-volume/mautic/*
+            echo "Removing cron data from /mnt/do-volume/cron/..."
+            sudo rm -rf /mnt/do-volume/cron/*
+            echo "Bind-mounted directories cleanup complete."
+          '
+          rm -f id_rsa
+
       - name: Cleanup Complete
         run: |
           echo "Cleanup completed successfully."
@@ -122,4 +140,8 @@ jobs:
           if [ "${{ env.files_volume_exists }}" = "true" ]; then
             echo "- Files volume 'mautic-files'"
           fi
+          echo "- Bind-mounted MySQL data (/mnt/do-volume/mysql/)"
+          echo "- Bind-mounted Mautic files (/mnt/do-volume/mautic/)"
+          echo "- Bind-mounted cron data (/mnt/do-volume/cron/)"
+          echo "- All Docker containers and images"
           echo "Droplet 'mautic-vps' was NOT destroyed."
