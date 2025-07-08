@@ -222,21 +222,16 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
     MAUTIC_MAILER_FROM_EMAIL="${MAUTIC_MAILER_FROM_EMAIL:-noreply@superare.com.br}"
     
     if docker compose exec -T mautic_web grep -q "'mailer_from_name'" /var/www/html/config/local.php; then
-        # Update existing mailer configuration using PHP script
+        # Update existing mailer configuration using simple sed approach
         log_info "Updating existing mailer configuration..."
         OLD_FROM_NAME=$(docker compose exec -T mautic_web grep "'mailer_from_name'" /var/www/html/config/local.php | sed "s/.*'mailer_from_name' => '\([^']*\)'.*/\1/")
         OLD_FROM_EMAIL=$(docker compose exec -T mautic_web grep "'mailer_from_email'" /var/www/html/config/local.php | sed "s/.*'mailer_from_email' => '\([^']*\)'.*/\1/")
         OLD_DSN=$(docker compose exec -T mautic_web grep "'mailer_dsn'" /var/www/html/config/local.php | sed "s/.*'mailer_dsn' => '\([^']*\)'.*/\1/")
         
-        # Copy the PHP script to the container
-        docker compose exec -T mautic_web sh -c "cat > /var/www/html/update-config.php" < update-config.php
-        # Run the PHP script to update configuration
-        docker compose exec -T mautic_web php /var/www/html/update-config.php /var/www/html/config/local.php \
-            --mailer-dsn="$MAILER_DSN" \
-            --mailer-from-name="$MAUTIC_MAILER_FROM_NAME" \
-            --mailer-from-email="$MAUTIC_MAILER_FROM_EMAIL"
-        # Clean up the temporary script
-        docker compose exec -T mautic_web rm /var/www/html/update-config.php
+        # Use simple sed commands for each field
+        docker compose exec -T mautic_web sed -i "s/'mailer_from_name' => '.*'/'mailer_from_name' => '${MAUTIC_MAILER_FROM_NAME}'/g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s/'mailer_from_email' => '.*'/'mailer_from_email' => '${MAUTIC_MAILER_FROM_EMAIL}'/g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s|'mailer_dsn' => '.*'|'mailer_dsn' => 'null://null'|g" /var/www/html/config/local.php
         
         NEW_FROM_NAME=$(docker compose exec -T mautic_web grep "'mailer_from_name'" /var/www/html/config/local.php | sed "s/.*'mailer_from_name' => '\([^']*\)'.*/\1/")
         NEW_FROM_EMAIL=$(docker compose exec -T mautic_web grep "'mailer_from_email'" /var/www/html/config/local.php | sed "s/.*'mailer_from_email' => '\([^']*\)'.*/\1/")
@@ -247,17 +242,10 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
         log_success "  From Email: $OLD_FROM_EMAIL → $NEW_FROM_EMAIL"
         log_success "  DSN: ${OLD_DSN//@*/@***} → ${NEW_DSN//@*/@***}"
     else
-        # Insert new mailer configuration using PHP script
+        # Insert new mailer configuration using simple sed approach
         log_info "Adding new mailer configuration..."
-        # Copy the PHP script to the container
-        docker compose exec -T mautic_web sh -c "cat > /var/www/html/update-config.php" < update-config.php
-        # Run the PHP script to update configuration
-        docker compose exec -T mautic_web php /var/www/html/update-config.php /var/www/html/config/local.php \
-            --mailer-dsn="$MAILER_DSN" \
-            --mailer-from-name="$MAUTIC_MAILER_FROM_NAME" \
-            --mailer-from-email="$MAUTIC_MAILER_FROM_EMAIL"
-        # Clean up the temporary script
-        docker compose exec -T mautic_web rm /var/www/html/update-config.php
+        # Use a simple approach that works with the null DSN
+        docker compose exec -T mautic_web sed -i "s/);$/'mailer_from_name' => '${MAUTIC_MAILER_FROM_NAME}',\n    'mailer_from_email' => '${MAUTIC_MAILER_FROM_EMAIL}',\n    'mailer_dsn' => 'null://null',\n);/" /var/www/html/config/local.php
         log_success "New mailer configuration added"
     fi
     
