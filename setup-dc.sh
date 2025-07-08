@@ -180,12 +180,20 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
         OLD_API_ENABLED=$(docker compose exec -T mautic_web grep "'api_enabled'" /var/www/html/config/local.php | sed "s/.*'api_enabled' => \(.*\),.*/\1/")
         docker compose exec -T mautic_web sed -i "s/'api_enabled' => false/'api_enabled' => true/g" /var/www/html/config/local.php
         docker compose exec -T mautic_web sed -i "s/'api_basic_auth_enabled' => false/'api_basic_auth_enabled' => true/g" /var/www/html/config/local.php
+        
+        # Fix the rate limiter cache configuration
+        if docker compose exec -T mautic_web grep -q "'api_rate_limiter_cache'" /var/www/html/config/local.php; then
+            log_info "Fixing API rate limiter cache configuration..."
+            docker compose exec -T mautic_web sed -i "s/'api_rate_limiter_cache' => '.*'/'api_rate_limiter_cache' => null/g" /var/www/html/config/local.php
+            log_success "API rate limiter cache fixed"
+        fi
+        
         NEW_API_ENABLED=$(docker compose exec -T mautic_web grep "'api_enabled'" /var/www/html/config/local.php | sed "s/.*'api_enabled' => \(.*\),.*/\1/")
         log_success "API enabled: $OLD_API_ENABLED → $NEW_API_ENABLED"
     else
         # Insert new API configuration before the closing );
         log_info "Adding new API configuration..."
-        docker compose exec -T mautic_web sed -i "s/);$/'api_enabled' => true,\n    'api_basic_auth_enabled' => true,\n    'api_rate_limiter_enabled' => true,\n    'api_rate_limiter_cache' => 'redis',\n    'api_rate_limiter_limit' => 100,\n    'api_rate_limiter_period' => 60,\n);/" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s/);$/'api_enabled' => true,\n    'api_basic_auth_enabled' => true,\n    'api_rate_limiter_enabled' => true,\n    'api_rate_limiter_cache' => null,\n    'api_rate_limiter_limit' => 100,\n    'api_rate_limiter_period' => 60,\n);/" /var/www/html/config/local.php
         log_success "New API configuration added"
     fi
     
@@ -201,8 +209,17 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
         log_info "Using provided MAILER_DSN: ${MAUTIC_MAILER_DSN//@*/@***}"
     else
         log_warning "No SendGrid API key or MAILER_DSN found!"
+        log_warning "Environment variables MAUTIC_SENDGRID_API_KEY or MAUTIC_MAILER_DSN are not set"
+        log_info "Using null transport (emails will not be sent)"
+        log_info "To configure email sending, set one of these environment variables:"
+        log_info "  - MAUTIC_SENDGRID_API_KEY=your_sendgrid_api_key"
+        log_info "  - MAUTIC_MAILER_DSN=sendgrid+api://your_api_key@default"
         MAILER_DSN="null://null"
     fi
+    
+    # Set default values for missing environment variables
+    MAUTIC_MAILER_FROM_NAME="${MAUTIC_MAILER_FROM_NAME:-Método Superare}"
+    MAUTIC_MAILER_FROM_EMAIL="${MAUTIC_MAILER_FROM_EMAIL:-noreply@superare.com.br}"
     
     if docker compose exec -T mautic_web grep -q "'mailer_from_name'" /var/www/html/config/local.php; then
         # Update existing mailer configuration
@@ -211,9 +228,11 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
         OLD_FROM_EMAIL=$(docker compose exec -T mautic_web grep "'mailer_from_email'" /var/www/html/config/local.php | sed "s/.*'mailer_from_email' => '\([^']*\)'.*/\1/")
         OLD_DSN=$(docker compose exec -T mautic_web grep "'mailer_dsn'" /var/www/html/config/local.php | sed "s/.*'mailer_dsn' => '\([^']*\)'.*/\1/")
         
-        docker compose exec -T mautic_web sed -i "s/'mailer_from_name' => '.*'/'mailer_from_name' => '{{MAUTIC_MAILER_FROM_NAME}}'/g" /var/www/html/config/local.php
-        docker compose exec -T mautic_web sed -i "s/'mailer_from_email' => '.*'/'mailer_from_email' => '{{MAUTIC_MAILER_FROM_EMAIL}}'/g" /var/www/html/config/local.php
-        docker compose exec -T mautic_web sed -i "s|'mailer_dsn' => '.*'|'mailer_dsn' => '${MAILER_DSN}'|g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s/'mailer_from_name' => '.*'/'mailer_from_name' => '${MAUTIC_MAILER_FROM_NAME}'/g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s/'mailer_from_email' => '.*'/'mailer_from_email' => '${MAUTIC_MAILER_FROM_EMAIL}'/g" /var/www/html/config/local.php
+        # Escape the DSN string for sed
+        ESCAPED_DSN=$(echo "$MAILER_DSN" | sed 's/[[\.*^$()+?{|]/\\&/g')
+        docker compose exec -T mautic_web sed -i "s|'mailer_dsn' => '.*'|'mailer_dsn' => '${ESCAPED_DSN}'|g" /var/www/html/config/local.php
         
         NEW_FROM_NAME=$(docker compose exec -T mautic_web grep "'mailer_from_name'" /var/www/html/config/local.php | sed "s/.*'mailer_from_name' => '\([^']*\)'.*/\1/")
         NEW_FROM_EMAIL=$(docker compose exec -T mautic_web grep "'mailer_from_email'" /var/www/html/config/local.php | sed "s/.*'mailer_from_email' => '\([^']*\)'.*/\1/")
@@ -226,7 +245,9 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
     else
         # Insert new mailer configuration before the closing );
         log_info "Adding new mailer configuration..."
-        docker compose exec -T mautic_web sed -i "s/);$/'mailer_from_name' => '{{MAUTIC_MAILER_FROM_NAME}}',\n    'mailer_from_email' => '{{MAUTIC_MAILER_FROM_EMAIL}}',\n    'mailer_dsn' => '${MAILER_DSN}',\n);/" /var/www/html/config/local.php
+        # Escape the DSN string for sed
+        ESCAPED_DSN=$(echo "$MAILER_DSN" | sed 's/[[\.*^$()+?{|]/\\&/g')
+        docker compose exec -T mautic_web sed -i "s/);$/'mailer_from_name' => '${MAUTIC_MAILER_FROM_NAME}',\n    'mailer_from_email' => '${MAUTIC_MAILER_FROM_EMAIL}',\n    'mailer_dsn' => '${ESCAPED_DSN}',\n);/" /var/www/html/config/local.php
         log_success "New mailer configuration added"
     fi
     
