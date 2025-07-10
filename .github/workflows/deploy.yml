@@ -267,10 +267,26 @@ jobs:
               sudo apt-get install -y certbot python3-certbot-nginx
             fi
             
+            # Clean up any old nginx configurations that might cause issues
+            sudo rm -f /etc/nginx/sites-enabled/nginx-virtual-host-superare.com.br
+            sudo rm -f /etc/nginx/sites-enabled/nginx-virtual-host-*
+            
+            # Ensure the correct nginx configuration is in place
+            if [ -f /var/www/nginx-virtual-host-m.${{ vars.DOMAIN }} ]; then
+              sudo ln -sf /var/www/nginx-virtual-host-m.${{ vars.DOMAIN }} /etc/nginx/sites-enabled/nginx-virtual-host-m.${{ vars.DOMAIN }}
+              echo 'Nginx configuration symlink created'
+            else
+              echo 'Error: Nginx configuration file not found'
+              exit 1
+            fi
+            
+            # Test nginx configuration before SSL installation
+            sudo nginx -t
+            
             # Obtain SSL certificate for the Mautic subdomain
             sudo certbot --nginx -n --agree-tos --redirect --email '${{ vars.EMAIL_ADDRESS }}' -d m.${{ vars.DOMAIN }}
             
-            # Test nginx configuration
+            # Test nginx configuration after SSL installation
             sudo nginx -t && sudo nginx -s reload
           "
 
