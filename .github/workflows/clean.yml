@@ -130,6 +130,23 @@ jobs:
           '
           rm -f id_rsa
 
+      - name: Clean /var/www directory on the droplet
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          echo "${SSH_PRIVATE_KEY}" > id_rsa
+          chmod 600 id_rsa
+          ssh -o StrictHostKeyChecking=no -i id_rsa root@${{ env.SERVER_IP }} '
+            echo "Cleaning /var/www directory completely..."
+            cd /var/www
+            echo "Removing all files and directories in /var/www..."
+            sudo rm -rf /var/www/*
+            echo "Removing hidden files in /var/www..."
+            sudo rm -rf /var/www/.* 2>/dev/null || true
+            echo "/var/www directory cleanup complete."
+          '
+          rm -f id_rsa
+
       - name: Cleanup Complete
         run: |
           echo "Cleanup completed successfully."
@@ -144,4 +161,5 @@ jobs:
           echo "- Bind-mounted Mautic files directory (/mnt/do-volume/mautic/)"
           echo "- Bind-mounted cron data directory (/mnt/do-volume/cron/)"
           echo "- All Docker containers and images"
+          echo "- All files in /var/www directory"
           echo "Droplet 'mautic-vps' was NOT destroyed."
