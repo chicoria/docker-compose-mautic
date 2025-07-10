@@ -109,8 +109,9 @@ fi
 
 log_info "Configuring Nginx for domain: $DOMAIN"
 
-SOURCE_PATH="/var/www/nginx-virtual-host-$DOMAIN"
-TARGET_PATH="/etc/nginx/sites-enabled/nginx-virtual-host-$DOMAIN"
+# The GitHub Actions workflow creates the file with 'm.' prefix for Mautic subdomain
+SOURCE_PATH="/var/www/nginx-virtual-host-m.$DOMAIN"
+TARGET_PATH="/etc/nginx/sites-enabled/nginx-virtual-host-m.$DOMAIN"
 
 # Remove the existing symlink if it exists
 if [ -L "$TARGET_PATH" ]; then
@@ -157,10 +158,10 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
     docker compose exec -T mautic_web cp /var/www/html/config/local.php "$BACKUP_FILE"
     log_success "Backup created: $BACKUP_FILE"
     
-    # Replace the site_url value with the domain
+    # Replace the site_url value with the Mautic subdomain
     log_info "Updating site_url in Mautic configuration..."
     OLD_SITE_URL=$(docker compose exec -T mautic_web grep "'site_url'" /var/www/html/config/local.php | sed "s/.*'site_url' => '\([^']*\)'.*/\1/")
-    docker compose exec -T mautic_web sed -i "s|'site_url' => '.*',|'site_url' => 'https://$DOMAIN',|g" /var/www/html/config/local.php
+    docker compose exec -T mautic_web sed -i "s|'site_url' => '.*',|'site_url' => 'https://m.$DOMAIN',|g" /var/www/html/config/local.php
     NEW_SITE_URL=$(docker compose exec -T mautic_web grep "'site_url'" /var/www/html/config/local.php | sed "s/.*'site_url' => '\([^']*\)'.*/\1/")
     log_success "Site URL updated: $OLD_SITE_URL → $NEW_SITE_URL"
     
