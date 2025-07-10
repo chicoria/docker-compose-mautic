@@ -6,7 +6,8 @@ RUN apt-get update && apt-get install -y git
 
 # Install the SendGrid mailer bridge
 RUN cd /var/www/html && \
-    COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_PROCESS_TIMEOUT=10000 composer require symfony/sendgrid-mailer --no-scripts --no-interaction --optimize-autoloader
+    COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_PROCESS_TIMEOUT=10000 composer require symfony/sendgrid-mailer --no-scripts --no-interaction --optimize-autoloader && \
+    composer show symfony/sendgrid-mailer --format=json > /dev/null
 
 # (Optional) Install any custom themes or plugins here
 # RUN cd /var/www/html && \

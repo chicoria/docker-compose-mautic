@@ -231,7 +231,7 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
         # Use simple sed commands for each field
         docker compose exec -T mautic_web sed -i "s/'mailer_from_name' => '.*'/'mailer_from_name' => '${MAUTIC_MAILER_FROM_NAME}'/g" /var/www/html/config/local.php
         docker compose exec -T mautic_web sed -i "s/'mailer_from_email' => '.*'/'mailer_from_email' => '${MAUTIC_MAILER_FROM_EMAIL}'/g" /var/www/html/config/local.php
-        docker compose exec -T mautic_web sed -i "s|'mailer_dsn' => '.*'|'mailer_dsn' => 'null://null'|g" /var/www/html/config/local.php
+        docker compose exec -T mautic_web sed -i "s|'mailer_dsn' => '.*'|'mailer_dsn' => '${MAILER_DSN}'|g" /var/www/html/config/local.php
         
         NEW_FROM_NAME=$(docker compose exec -T mautic_web grep "'mailer_from_name'" /var/www/html/config/local.php | sed "s/.*'mailer_from_name' => '\([^']*\)'.*/\1/")
         NEW_FROM_EMAIL=$(docker compose exec -T mautic_web grep "'mailer_from_email'" /var/www/html/config/local.php | sed "s/.*'mailer_from_email' => '\([^']*\)'.*/\1/")
@@ -244,8 +244,8 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
     else
         # Insert new mailer configuration using simple sed approach
         log_info "Adding new mailer configuration..."
-        # Use a simple approach that works with the null DSN
-        docker compose exec -T mautic_web sed -i "s/);$/'mailer_from_name' => '${MAUTIC_MAILER_FROM_NAME}',\n    'mailer_from_email' => '${MAUTIC_MAILER_FROM_EMAIL}',\n    'mailer_dsn' => 'null://null',\n);/" /var/www/html/config/local.php
+        # Use the actual SendGrid DSN
+        docker compose exec -T mautic_web sed -i "s/);$/'mailer_from_name' => '${MAUTIC_MAILER_FROM_NAME}',\n    'mailer_from_email' => '${MAUTIC_MAILER_FROM_EMAIL}',\n    'mailer_dsn' => '${MAILER_DSN}',\n);/" /var/www/html/config/local.php
         log_success "New mailer configuration added"
     fi
     
