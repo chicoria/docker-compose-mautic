@@ -62,15 +62,29 @@ jobs:
           # MySQL Volume
           MYSQL_VOLUME_ID=$(doctl compute volume list --format ID,Name --no-header | grep mautic-mysql | awk '{print $1}')
           if [ -n "$MYSQL_VOLUME_ID" ] && [ -n "$DROPLET_ID" ]; then
-            echo "Detaching MySQL volume..."
-            doctl compute volume-action detach "$MYSQL_VOLUME_ID" "$DROPLET_ID"
+            echo "Attempting to detach MySQL volume..."
+            # Check if volume is attached before trying to detach
+            VOLUME_STATUS=$(doctl compute volume get "$MYSQL_VOLUME_ID" --format DropletIDs --no-header)
+            if [ -n "$VOLUME_STATUS" ] && [ "$VOLUME_STATUS" != "[]" ]; then
+              doctl compute volume-action detach "$MYSQL_VOLUME_ID" "$DROPLET_ID"
+              echo "MySQL volume detached successfully"
+            else
+              echo "MySQL volume is not attached to any droplet, skipping detach"
+            fi
           fi
 
           # Files Volume
           FILES_VOLUME_ID=$(doctl compute volume list --format ID,Name --no-header | grep mautic-files | awk '{print $1}')
           if [ -n "$FILES_VOLUME_ID" ] && [ -n "$DROPLET_ID" ]; then
-            echo "Detaching Files volume..."
-            doctl compute volume-action detach "$FILES_VOLUME_ID" "$DROPLET_ID"
+            echo "Attempting to detach Files volume..."
+            # Check if volume is attached before trying to detach
+            VOLUME_STATUS=$(doctl compute volume get "$FILES_VOLUME_ID" --format DropletIDs --no-header)
+            if [ -n "$VOLUME_STATUS" ] && [ "$VOLUME_STATUS" != "[]" ]; then
+              doctl compute volume-action detach "$FILES_VOLUME_ID" "$DROPLET_ID"
+              echo "Files volume detached successfully"
+            else
+              echo "Files volume is not attached to any droplet, skipping detach"
+            fi
           fi
 
       - name: Delete Volumes
