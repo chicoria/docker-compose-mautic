@@ -3,7 +3,7 @@
 
 server {
     listen 80;
-    server_name m.DOMAIN_NAME;
+    server_name DOMAIN_NAME;
 
     # Security: Block access to sensitive files
     location ~ /\.env(\.example|\.local|\.production)?$ {
