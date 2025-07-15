@@ -325,3 +325,12 @@ log_success "✅ SendGrid email integration configured"
 log_success "✅ Nginx configured with domain: $DOMAIN"
 log_success "✅ Direct IP blocking enabled"
 log_info "=== Deployment Summary Complete ==="
+
+# Ensure MAUTIC_MAILER_DSN is set in .env before starting Docker Compose
+if [ -n "$MAUTIC_MAILER_DSN" ]; then
+    echo "MAUTIC_MAILER_DSN=$MAUTIC_MAILER_DSN" >> /var/www/.env
+    log_info "MAUTIC_MAILER_DSN written to .env file."
+elif [ -n "{{MAUTIC_SENDGRID_API_KEY}}" ]; then
+    echo "MAUTIC_MAILER_DSN=sendgrid+api://{{MAUTIC_SENDGRID_API_KEY}}@api.sendgrid.com" >> /var/www/.env
+    log_info "MAUTIC_MAILER_DSN (from SendGrid key) written to .env file."
+fi
