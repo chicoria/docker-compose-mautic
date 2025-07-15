@@ -219,6 +219,10 @@ jobs:
 
           cat nginx-virtual-host-m.${{ vars.DOMAIN }} # debug
 
+      - name: Export SendGrid DSN
+        run: |
+          echo "MAUTIC_MAILER_DSN=sendgrid+api://${{ secrets.SENDGRID_API_KEY }}@api.sendgrid.com" >> $GITHUB_ENV
+
       - name: Prepare setup-dc.sh script
         env:
           EMAIL_ADDRESS: ${{ vars.EMAIL_ADDRESS }}
@@ -237,6 +241,8 @@ jobs:
           sed -i "s/{{MAUTIC_MAILER_FROM_EMAIL}}/${{ vars.MAUTIC_MAILER_FROM_EMAIL }}/g" setup-dc.sh
           # Inject SendGrid API key from secret
           sed -i "s/{{MAUTIC_SENDGRID_API_KEY}}/${{ secrets.SENDGRID_API_KEY  }}/g" setup-dc.sh
+          # Inject SendGrid DSN from environment
+          sed -i "s|{{MAUTIC_MAILER_DSN}}|${{ env.MAUTIC_MAILER_DSN }}|g" setup-dc.sh
           cat setup-dc.sh # debug
 
       - name: Deploy to Server

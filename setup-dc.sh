@@ -202,19 +202,19 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
     log_info "Configuring Mautic Email Settings..."
     
     # Build the DSN string for SendGrid API (Mautic way)
-    if [ -n "{{MAUTIC_SENDGRID_API_KEY}}" ]; then
-        MAILER_DSN="sendgrid+api://{{MAUTIC_SENDGRID_API_KEY}}@default"
-        log_info "Using SendGrid API DSN: sendgrid+api://***@default"
-    elif [ -n "$MAUTIC_MAILER_DSN" ]; then
+    if [ -n "$MAUTIC_MAILER_DSN" ]; then
         MAILER_DSN="$MAUTIC_MAILER_DSN"
-        log_info "Using provided MAILER_DSN: ${MAUTIC_MAILER_DSN//@*/@***}"
+        log_info "Using provided MAILER_DSN: ${MAILER_DSN//@*/@***}"
+    elif [ -n "{{MAUTIC_SENDGRID_API_KEY}}" ]; then
+        MAILER_DSN="sendgrid+api://{{MAUTIC_SENDGRID_API_KEY}}@api.sendgrid.com"
+        log_info "Using SendGrid API DSN: sendgrid+api://***@api.sendgrid.com"
     else
         log_warning "No SendGrid API key or MAILER_DSN found!"
         log_warning "Environment variables MAUTIC_SENDGRID_API_KEY or MAUTIC_MAILER_DSN are not set"
         log_info "Using null transport (emails will not be sent)"
         log_info "To configure email sending, set one of these environment variables:"
         log_info "  - MAUTIC_SENDGRID_API_KEY=your_sendgrid_api_key"
-        log_info "  - MAUTIC_MAILER_DSN=sendgrid+api://your_api_key@default"
+        log_info "  - MAUTIC_MAILER_DSN=sendgrid+api://your_api_key@api.sendgrid.com"
         MAILER_DSN="null://null"
     fi
     
@@ -267,6 +267,11 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
         fi
     fi
     
+    # Fix permissions after config changes
+    log_info "Fixing permissions for cache and logs..."
+    docker compose exec -T mautic_web chown -R www-data:www-data /var/www/html/var/cache /var/www/html/var/logs
+    log_success "Permissions fixed"
+
     # Clear Mautic cache
     log_info "Clearing Mautic cache..."
     docker compose exec -T mautic_web php /var/www/html/bin/console cache:clear --env=prod
