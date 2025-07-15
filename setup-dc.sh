@@ -205,16 +205,8 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
     if [ -n "$MAUTIC_MAILER_DSN" ]; then
         MAILER_DSN="$MAUTIC_MAILER_DSN"
         log_info "Using provided MAILER_DSN: ${MAILER_DSN//@*/@***}"
-    elif [ -n "{{MAUTIC_SENDGRID_API_KEY}}" ]; then
-        MAILER_DSN="sendgrid+api://{{MAUTIC_SENDGRID_API_KEY}}@api.sendgrid.com"
-        log_info "Using SendGrid API DSN: sendgrid+api://***@api.sendgrid.com"
     else
-        log_warning "No SendGrid API key or MAILER_DSN found!"
-        log_warning "Environment variables MAUTIC_SENDGRID_API_KEY or MAUTIC_MAILER_DSN are not set"
-        log_info "Using null transport (emails will not be sent)"
-        log_info "To configure email sending, set one of these environment variables:"
-        log_info "  - MAUTIC_SENDGRID_API_KEY=your_sendgrid_api_key"
-        log_info "  - MAUTIC_MAILER_DSN=sendgrid+api://your_api_key@api.sendgrid.com"
+        log_warning "No MAILER_DSN found! Using null transport."
         MAILER_DSN="null://null"
     fi
     
@@ -330,7 +322,7 @@ log_info "=== Deployment Summary Complete ==="
 if [ -n "$MAUTIC_MAILER_DSN" ]; then
     echo "MAUTIC_MAILER_DSN=$MAUTIC_MAILER_DSN" >> /var/www/.env
     log_info "MAUTIC_MAILER_DSN written to .env file."
-elif [ -n "{{MAUTIC_SENDGRID_API_KEY}}" ]; then
-    echo "MAUTIC_MAILER_DSN=sendgrid+api://{{MAUTIC_SENDGRID_API_KEY}}@api.sendgrid.com" >> /var/www/.env
-    log_info "MAUTIC_MAILER_DSN (from SendGrid key) written to .env file."
+else
+    echo "MAUTIC_MAILER_DSN=null://null" >> /var/www/.env
+    log_info "MAUTIC_MAILER_DSN (null transport) written to .env file."
 fi
