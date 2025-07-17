@@ -198,17 +198,17 @@ if docker compose exec -T mautic_web test -f /var/www/html/config/local.php && d
         log_success "New API configuration added"
     fi
     
-    # Configure Mautic Email Settings
+    # Configure Mautic Email Settings for Mautic 5
     log_info "Configuring Mautic Email Settings..."
     
-    # Build the DSN string for SendGrid API (Mautic way)
-    if [ -n "$MAUTIC_MAILER_DSN" ]; then
-        MAILER_DSN="$MAUTIC_MAILER_DSN"
-        log_info "Using provided MAILER_DSN: ${MAILER_DSN//@*/@***}"
-    else
-        log_warning "No MAILER_DSN found! Using null transport."
-        MAILER_DSN="null://null"
-    fi
+    # Set SendGrid SMTP configuration
+    MAUTIC_MAILER_TRANSPORT="smtp"
+    MAUTIC_MAILER_HOST="smtp.sendgrid.net"
+    MAUTIC_MAILER_PORT="587"
+    MAUTIC_MAILER_USER="apikey"
+    MAUTIC_MAILER_PASSWORD="${MAUTIC_SENDGRID_API_KEY}"
+    MAUTIC_MAILER_ENCRYPTION="tls"
+    MAUTIC_MAILER_AUTH_MODE="login"
     
     # Set default values for missing environment variables
     MAUTIC_MAILER_FROM_NAME="${MAUTIC_MAILER_FROM_NAME:-Método Superare}"
@@ -326,3 +326,13 @@ else
     echo "MAUTIC_MAILER_DSN=null://null" >> /var/www/.env
     log_info "MAUTIC_MAILER_DSN (null transport) written to .env file."
 fi
+
+# Write Mautic 5 mailer configuration to .env
+echo "MAUTIC_MAILER_TRANSPORT=smtp" >> /var/www/.env
+echo "MAUTIC_MAILER_HOST=smtp.sendgrid.net" >> /var/www/.env
+echo "MAUTIC_MAILER_PORT=587" >> /var/www/.env
+echo "MAUTIC_MAILER_USER=apikey" >> /var/www/.env
+echo "MAUTIC_MAILER_PASSWORD=${MAUTIC_SENDGRID_API_KEY}" >> /var/www/.env
+echo "MAUTIC_MAILER_ENCRYPTION=tls" >> /var/www/.env
+echo "MAUTIC_MAILER_AUTH_MODE=login" >> /var/www/.env
+log_info "Mautic 5 SMTP configuration written to .env file."

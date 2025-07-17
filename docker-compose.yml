@@ -42,10 +42,16 @@ services:
     environment:
       - DOCKER_MAUTIC_LOAD_TEST_DATA=${DOCKER_MAUTIC_LOAD_TEST_DATA}
       - DOCKER_MAUTIC_RUN_MIGRATIONS=${DOCKER_MAUTIC_RUN_MIGRATIONS}
-      # Email Configuration (DSN-based for Mautic 6)
+      # Email Configuration (Mautic 5 - SMTP-based)
       - MAUTIC_MAILER_FROM_NAME=${MAUTIC_MAILER_FROM_NAME:-Método Superare}
       - MAUTIC_MAILER_FROM_EMAIL=${MAUTIC_MAILER_FROM_EMAIL:-noreply@superare.com.br}
-      - MAUTIC_MAILER_DSN=${MAUTIC_MAILER_DSN}
+      - MAUTIC_MAILER_TRANSPORT=smtp
+      - MAUTIC_MAILER_HOST=smtp.sendgrid.net
+      - MAUTIC_MAILER_PORT=587
+      - MAUTIC_MAILER_USER=apikey
+      - MAUTIC_MAILER_PASSWORD=${MAUTIC_SENDGRID_API_KEY}
+      - MAUTIC_MAILER_ENCRYPTION=tls
+      - MAUTIC_MAILER_AUTH_MODE=login
     env_file:
       - .mautic_env
     healthcheck:
